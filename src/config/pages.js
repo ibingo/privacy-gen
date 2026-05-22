@@ -80,13 +80,131 @@ export const pageGroups = [
         icon: 'Setting1Icon'
       }
     ]
+  },
+  {
+    title: '图标资源',
+    icon: 'FileIconIcon',
+    children: [
+      {
+        name: 'icon-project-list',
+        path: '/legal/icon-projects',
+        title: '图标项目列表',
+        description: '按产品和环境隔离管理图标资源库。',
+        icon: 'RootListIcon'
+      },
+      {
+        name: 'icon-list',
+        path: '/legal/icon-projects/:projectId/icons',
+        title: '图标工作区',
+        description: '集中管理产品图标资源、分类、状态和导出格式。',
+        icon: 'ViewModuleIcon'
+      }
+    ]
+  },
+  {
+    title: '应用图标',
+    icon: 'AppIcon',
+    children: [
+      {
+        name: 'app-icon-list',
+        path: '/legal/app-icons',
+        title: '应用图标列表',
+        description: '按应用统一管理移动端应用图标、生成平台、版本和发布状态。',
+        icon: 'MobileListIcon'
+      }
+    ]
+  },
+  {
+    title: '应用启动页',
+    icon: 'ImageAddIcon',
+    children: [
+      {
+        name: 'app-launch-list',
+        path: '/legal/app-launches',
+        title: '应用启动页列表',
+        description: '按应用统一管理启动图资源、版本支持、生成状态和最近更新时间。',
+        icon: 'MobileListIcon'
+      }
+    ]
+  },
+  {
+    title: '移动应用中心',
+    icon: 'MobileListIcon',
+    children: [
+      {
+        name: 'mobile-app-overview',
+        path: '/legal/mobile-apps/overview',
+        title: '概览',
+        description: '查看移动应用的平台分布、下载量、评分和最近发布动态。',
+        icon: 'RootListIcon'
+      },
+      {
+        name: 'mobile-app-list',
+        path: '/legal/mobile-apps/list',
+        title: '应用列表',
+        description: '按平台和状态筛选移动应用，查看版本、下载量和更新记录。',
+        icon: 'ViewModuleIcon'
+      },
+      {
+        name: 'mobile-app-ab-tests',
+        path: '/legal/mobile-apps/ab-tests',
+        title: 'AB 测试',
+        description: '管理移动端实验流量、版本策略、分组命中和转化指标。',
+        icon: 'Setting1Icon'
+      }
+    ]
+  },
+  {
+    title: '功能特性管理',
+    icon: 'Setting1Icon',
+    children: [
+      {
+        name: 'mobile-app-experiments',
+        path: '/legal/mobile-apps/experiments',
+        title: '开关管理',
+        description: '管理移动端特性开关、环境规则、Variation 和实验层。',
+        icon: 'Setting1Icon'
+      },
+      {
+        name: 'mobile-app-segment-group',
+        title: '人群组',
+        icon: 'ViewListIcon',
+        children: [
+          {
+            name: 'mobile-app-segments',
+            path: '/legal/mobile-apps/segments',
+            title: '人群组列表',
+            description: '管理可复用用户人群组，用于开关命中和实验筛选。',
+            icon: 'ViewListIcon'
+          },
+          {
+            name: 'mobile-app-segment-attributes',
+            path: '/legal/mobile-apps/segment-attributes',
+            title: '人群属性列表',
+            description: '管理可在人群组条件中选择的用户属性。',
+            icon: 'ViewListIcon'
+          }
+        ]
+      },
+      {
+        name: 'mobile-app-flag-approvals',
+        path: '/legal/mobile-apps/flag-approvals',
+        title: '开关审批',
+        description: '管理开关发布、灰度扩大和规则变更审批。',
+        icon: 'FileIcon'
+      }
+    ]
   }
 ]
 
 export const pages = pageGroups.reduce((acc, group) => {
-  group.children.forEach((page) => {
-    acc[page.name] = page
-  })
+  const collect = (items) => {
+    items.forEach((page) => {
+      acc[page.name] = page
+      if (page.children) collect(page.children)
+    })
+  }
+  collect(group.children)
   return acc
 }, {})
 
@@ -104,4 +222,164 @@ pages['i18n-task-create'] = {
   title: '新建任务',
   description: '配置翻译源、语种与文案筛选条件后创建国际化任务。',
   icon: 'Setting1Icon'
+}
+
+pages['app-icon-create'] = {
+  name: 'app-icon-create',
+  path: '/legal/app-icons/new',
+  title: '新建应用图标',
+  description: '上传 1024px 源图后生成 iOS、Android、Web App 和 Cordova 等平台图标资源。',
+  icon: 'ImageAddIcon'
+}
+
+pages['app-icon-generate'] = {
+  name: 'app-icon-generate',
+  path: '/legal/app-icons/:id/generate',
+  title: '生成参数',
+  description: '配置圆角、内边距、背景、输出平台和文件命名后生成应用图标资源。',
+  icon: 'Setting1Icon'
+}
+
+pages['app-launch-create'] = {
+  name: 'app-launch-create',
+  path: '/legal/app-launches/new',
+  title: '新建应用启动页',
+  description: '填写启动图名称、资源缩写和版本支持后进入启动页编辑器。',
+  icon: 'ImageAddIcon'
+}
+
+pages['app-launch-edit'] = {
+  name: 'app-launch-edit',
+  path: '/legal/app-launches/:id/edit',
+  title: '应用启动页编辑',
+  description: '调整启动页背景、图层位置、缩放和设备尺寸后生成资源。',
+  icon: 'ImageEditIcon'
+}
+
+pages['icon-edit'] = {
+  name: 'icon-edit',
+  path: '/legal/icon-projects/:projectId/icons/:id',
+  title: '图标编辑',
+  description: '导入 Figma 文件，调整图标样式并导出 Compose ImageVector 或 Android Vector XML。',
+  icon: 'ImageEditIcon'
+}
+
+pages['icon-create'] = {
+  name: 'icon-create',
+  path: '/legal/icon-projects/:projectId/icons/new',
+  title: '图标编辑',
+  description: '导入 Figma 文件，调整图标样式并导出 Compose ImageVector 或 Android Vector XML。',
+  icon: 'ImageEditIcon'
+}
+
+pages['mobile-app-detail'] = {
+  name: 'mobile-app-detail',
+  path: '/legal/mobile-apps/:id',
+  title: '应用详情',
+  description: '查看移动应用的基本信息、部署环境、核心功能和版本记录。',
+  icon: 'MobileListIcon'
+}
+
+pages['mobile-app-edit'] = {
+  name: 'mobile-app-edit',
+  path: '/legal/mobile-apps/:id/edit',
+  title: '应用编辑',
+  description: '编辑应用基础信息、安装页内容、分发设置和展示资料。',
+  icon: 'Setting1Icon'
+}
+
+pages['mobile-app-versions'] = {
+  name: 'mobile-app-versions',
+  path: '/legal/mobile-apps/:id/versions',
+  title: '版本管理',
+  description: '查看版本列表并发布新版本，管理安装包、下载记录和发布说明。',
+  icon: 'ViewListIcon'
+}
+
+pages['mobile-app-install-manage'] = {
+  name: 'mobile-app-install-manage',
+  path: '/legal/mobile-apps/:id/install',
+  title: '安装管理',
+  description: '管理安装链接、安装页介绍、应用截图、下载状态和更多安装设置。',
+  icon: 'Setting1Icon'
+}
+
+pages['mobile-app-experiment-edit'] = {
+  name: 'mobile-app-experiment-edit',
+  path: '/legal/mobile-apps/experiments/:id/edit',
+  title: '编辑开关',
+  description: '编辑特性开关的基础信息、环境状态、负责人和前置条件。',
+  icon: 'Setting1Icon'
+}
+
+pages['mobile-app-experiment-create'] = {
+  name: 'mobile-app-experiment-create',
+  path: '/legal/mobile-apps/experiments/new',
+  title: '新建开关',
+  description: '创建特性开关并配置默认规则、Variation 和负责人。',
+  icon: 'Setting1Icon'
+}
+
+pages['mobile-app-flag-configs'] = {
+  name: 'mobile-app-flag-configs',
+  path: '/legal/mobile-apps/flag-configs/:id',
+  title: '开关配置',
+  description: '查看开关默认值、Variation、规则命中和灰度比例。',
+  icon: 'Setting1Icon'
+}
+
+pages['mobile-app-flag-config-edit'] = {
+  name: 'mobile-app-flag-config-edit',
+  path: '/legal/mobile-apps/flag-configs/:id/edit',
+  title: '编辑开关配置',
+  description: '编辑开关 Variation、规则命中、默认返回和关闭返回值。',
+  icon: 'Setting1Icon'
+}
+
+pages['mobile-app-flag-prerequisite-edit'] = {
+  name: 'mobile-app-flag-prerequisite-edit',
+  path: '/legal/mobile-apps/flag-configs/:id/prerequisite',
+  title: '前置条件',
+  description: '配置开关生效前必须满足的应用、环境和版本条件。',
+  icon: 'Setting1Icon'
+}
+
+pages['mobile-app-segment-edit'] = {
+  name: 'mobile-app-segment-edit',
+  path: '/legal/mobile-apps/segments/:id/edit',
+  title: '编辑用户组',
+  description: '编辑用户人群组的标识、描述和命中规则。',
+  icon: 'ViewListIcon'
+}
+
+pages['mobile-app-segment-create'] = {
+  name: 'mobile-app-segment-create',
+  path: '/legal/mobile-apps/segments/new',
+  title: '新建用户组',
+  description: '创建可复用用户人群组，并配置人群属性条件。',
+  icon: 'ViewListIcon'
+}
+
+pages['mobile-app-segment-attribute-create'] = {
+  name: 'mobile-app-segment-attribute-create',
+  path: '/legal/mobile-apps/segment-attributes/new',
+  title: '新建人群属性',
+  description: '创建可在人群组条件中复用的用户属性。',
+  icon: 'ViewListIcon'
+}
+
+pages['mobile-app-segment-attribute-detail'] = {
+  name: 'mobile-app-segment-attribute-detail',
+  path: '/legal/mobile-apps/segment-attributes/:id',
+  title: '人群属性详情',
+  description: '查看和维护人群属性的可选值。',
+  icon: 'ViewListIcon'
+}
+
+pages['mobile-app-flag-approval-edit'] = {
+  name: 'mobile-app-flag-approval-edit',
+  path: '/legal/mobile-apps/flag-approvals/:id/edit',
+  title: '编辑开关审批',
+  description: '编辑开关发布、灰度扩大和规则变更审批记录。',
+  icon: 'FileIcon'
 }

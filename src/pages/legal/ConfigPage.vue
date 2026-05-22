@@ -6,5 +6,5 @@
 
 <script setup>
 import { Content as TContent } from 'tdesign-vue-next'
-import ConfigPanel from '../components/ConfigPanel.vue'
+import ConfigPanel from '../../components/ConfigPanel.vue'
 </script>

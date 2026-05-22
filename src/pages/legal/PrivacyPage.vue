@@ -8,8 +8,8 @@
 <script setup>
 import { ref } from 'vue'
 import { Content as TContent } from 'tdesign-vue-next'
-import PolicyForm from '../components/PolicyForm.vue'
-import PolicyPreview from '../components/PolicyPreview.vue'
+import PolicyForm from '../../components/PolicyForm.vue'
+import PolicyPreview from '../../components/PolicyPreview.vue'
 
 const formData = ref({
   appName: '',

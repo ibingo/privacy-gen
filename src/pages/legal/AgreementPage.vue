@@ -8,8 +8,8 @@
 <script setup>
 import { ref } from 'vue'
 import { Content as TContent } from 'tdesign-vue-next'
-import AgreementForm from '../components/AgreementForm.vue'
-import AgreementPreview from '../components/AgreementPreview.vue'
+import AgreementForm from '../../components/AgreementForm.vue'
+import AgreementPreview from '../../components/AgreementPreview.vue'
 
 const agreementData = ref({
   appName: '',

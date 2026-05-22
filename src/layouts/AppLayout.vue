@@ -135,6 +135,7 @@
           :options="userOptions"
           trigger="click"
           placement="bottom-right"
+          @click="handleUserMenuClick"
         >
           <button class="topbar-user" type="button">
             <user-circle-icon />
@@ -166,16 +167,35 @@
             <template #title>
               {{ group.title }}
             </template>
-            <t-menu-item
-              v-for="page in group.children"
-              :key="page.name"
-              :value="page.name"
-            >
-              <template #icon>
-                <component :is="resolveIcon(page.icon)" />
-              </template>
-              {{ page.title }}
-            </t-menu-item>
+            <template v-for="page in group.children" :key="page.name">
+              <t-submenu v-if="page.children" :value="page.name">
+                <template #icon>
+                  <component :is="resolveIcon(page.icon)" />
+                </template>
+                <template #title>
+                  {{ page.title }}
+                </template>
+                <t-menu-item
+                  v-for="child in page.children"
+                  :key="child.name"
+                  :value="child.name"
+                >
+                  <template #icon>
+                    <component :is="resolveIcon(child.icon)" />
+                  </template>
+                  {{ child.title }}
+                </t-menu-item>
+              </t-submenu>
+              <t-menu-item
+                v-else
+                :value="page.name"
+              >
+                <template #icon>
+                  <component :is="resolveIcon(page.icon)" />
+                </template>
+                {{ page.title }}
+              </t-menu-item>
+            </template>
           </t-submenu>
         </t-menu>
       </t-aside>
@@ -191,6 +211,55 @@
         </t-content>
       </t-layout>
     </t-layout>
+
+    <div v-if="showEditorChat" class="editor-chat-entry">
+      <section
+        v-if="editorChatVisible"
+        class="editor-chat-panel"
+        aria-label="AI 编辑助手"
+      >
+        <header class="editor-chat-header">
+          <div class="editor-chat-title">
+            <span class="editor-chat-title-icon">
+              <robot-icon />
+            </span>
+            <span>
+              <strong>AI 编辑助手</strong>
+              <small>{{ pageTitle }}</small>
+            </span>
+          </div>
+          <button
+            class="editor-chat-close"
+            type="button"
+            aria-label="关闭 AI 编辑助手"
+            @click="editorChatVisible = false"
+          >
+            <close-icon />
+          </button>
+        </header>
+        <chatbot-component
+          :key="route.fullPath"
+          class="editor-chatbot"
+          layout="single"
+          :default-messages="editorChatDefaultMessages"
+          :sender-props="editorChatSenderProps"
+          :message-props="editorChatMessageProps"
+          :chat-service-config="editorChatServiceConfig"
+        />
+      </section>
+
+      <t-button
+        class="editor-chat-fab"
+        theme="primary"
+        shape="circle"
+        title="打开 AI 编辑助手"
+        @click="editorChatVisible = !editorChatVisible"
+      >
+        <template #icon>
+          <chat-bubble-icon />
+        </template>
+      </t-button>
+    </div>
   </t-layout>
 </template>
 
@@ -198,22 +267,32 @@
 import { computed, h, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
+  AppIcon,
+  ChatBubbleIcon,
   ChevronDownIcon,
+  CloseIcon,
   FileIcon,
+  FileIconIcon,
   FolderOpenIcon,
   HelpCircleIcon,
+  ImageEditIcon,
+  ImageAddIcon,
   LogoGithubIcon,
   MailIcon,
   MenuIcon,
+  MobileListIcon,
   LogoutIcon,
+  RobotIcon,
   RootListIcon,
   SearchIcon,
   SecuredIcon,
   Setting1Icon,
   TranslateIcon,
   UserCircleIcon,
-  ViewListIcon
+  ViewListIcon,
+  ViewModuleIcon
 } from 'tdesign-icons-vue-next'
+import { Chatbot as ChatbotComponent } from '@tdesign-vue-next/chat'
 import {
   Aside as TAside,
   Badge as TBadge,
@@ -235,14 +314,20 @@ import {
   PROJECT_STORAGE_KEY,
   projectGroups
 } from '../config/projects'
+import { getActiveIconProjectId } from '../config/iconProjects'
+import { logout } from '../utils/auth'
 
 const route = useRoute()
 const router = useRouter()
-const expandedMenus = ref(pageGroups.map((group) => group.title))
+const expandedMenus = ref(pageGroups.flatMap((group) => [
+  group.title,
+  ...group.children.filter((page) => page.children).map((page) => page.name)
+]))
 const selectedProjectValue = ref(localStorage.getItem(PROJECT_STORAGE_KEY) || defaultProjectValue)
 const selectedLocaleValue = ref('zh-CN')
 const projectPopupVisible = ref(false)
 const notificationPopupVisible = ref(false)
+const editorChatVisible = ref(false)
 
 const locales = [
   { value: 'zh-CN', label: '简体中文' },
@@ -277,20 +362,49 @@ const notifications = ref([
 ])
 
 const iconMap = {
+  AppIcon,
   FileIcon,
+  FileIconIcon,
+  ImageAddIcon,
+  ImageEditIcon,
+  MobileListIcon,
   RootListIcon,
   SecuredIcon,
   Setting1Icon,
   TranslateIcon,
-  ViewListIcon
+  ViewListIcon,
+  ViewModuleIcon
 }
 
-const activeMenu = computed(() => route.name || 'home')
+const activeMenu = computed(() => {
+  if (['icon-edit', 'icon-create'].includes(route.name)) return 'icon-list'
+  if (['app-icon-create', 'app-icon-generate'].includes(route.name)) return 'app-icon-list'
+  if (['app-launch-create', 'app-launch-edit'].includes(route.name)) return 'app-launch-list'
+  if (['mobile-app-detail', 'mobile-app-edit', 'mobile-app-versions', 'mobile-app-install-manage'].includes(route.name)) return 'mobile-app-list'
+  if (['mobile-app-experiment-edit', 'mobile-app-experiment-create'].includes(route.name)) return 'mobile-app-experiments'
+  if (['mobile-app-flag-configs', 'mobile-app-flag-config-edit', 'mobile-app-flag-prerequisite-edit'].includes(route.name)) return 'mobile-app-experiments'
+  if (['mobile-app-segment-edit', 'mobile-app-segment-create'].includes(route.name)) return 'mobile-app-segments'
+  if (['mobile-app-segment-attribute-detail', 'mobile-app-segment-attribute-create'].includes(route.name)) return 'mobile-app-segment-attributes'
+  if (route.name === 'mobile-app-flag-approval-edit') return 'mobile-app-flag-approvals'
+  return route.name || 'home'
+})
 const pageMeta = computed(() => pages[route.name] || pages[defaultProjectRouteName] || pages.projects)
 const pageTitle = computed(() => pageMeta.value.title)
 const pageDescription = computed(() => pageMeta.value.description)
 const showProjectMenu = computed(() => route.name !== 'projects')
-const showPageHeading = computed(() => !['projects', 'i18n-task-create'].includes(route.name))
+const showPageHeading = computed(() => !['projects', 'i18n-task-create', 'icon-edit', 'icon-create', 'app-launch-edit', 'mobile-app-overview', 'mobile-app-detail', 'mobile-app-edit', 'mobile-app-versions', 'mobile-app-install-manage', 'mobile-app-experiment-edit', 'mobile-app-experiment-create', 'mobile-app-flag-config-edit', 'mobile-app-segment-edit', 'mobile-app-segment-attribute-create', 'mobile-app-segment-attribute-detail', 'mobile-app-flag-approval-edit'].includes(route.name))
+const editorRouteNames = [
+  'privacy',
+  'agreement',
+  'i18n-task-create',
+  'app-icon-create',
+  'app-icon-generate',
+  'app-launch-create',
+  'app-launch-edit',
+  'icon-create',
+  'icon-edit'
+]
+const showEditorChat = computed(() => editorRouteNames.includes(route.name))
 const selectedProject = computed(() => {
   return existingProjects.find((project) => project.value === selectedProjectValue.value) || existingProjects[0]
 })
@@ -326,13 +440,98 @@ const userOptions = computed(() => [
   }
 ])
 const currentGroupTitle = computed(() => {
-  const group = pageGroups.find((item) => item.children.some((page) => page.name === route.name))
+  const routeName = ['app-launch-create', 'app-launch-edit'].includes(route.name)
+    ? 'app-launch-list'
+    : ['app-icon-create', 'app-icon-generate'].includes(route.name)
+    ? 'app-icon-list'
+    : ['icon-edit', 'icon-create'].includes(route.name)
+    ? 'icon-list'
+    : ['mobile-app-experiment-edit', 'mobile-app-experiment-create'].includes(route.name)
+    ? 'mobile-app-experiments'
+    : ['mobile-app-flag-configs', 'mobile-app-flag-config-edit', 'mobile-app-flag-prerequisite-edit'].includes(route.name)
+    ? 'mobile-app-experiments'
+    : ['mobile-app-segment-edit', 'mobile-app-segment-create'].includes(route.name)
+    ? 'mobile-app-segments'
+    : ['mobile-app-segment-attribute-detail', 'mobile-app-segment-attribute-create'].includes(route.name)
+    ? 'mobile-app-segment-attributes'
+    : route.name === 'mobile-app-flag-approval-edit'
+    ? 'mobile-app-flag-approvals'
+    : ['mobile-app-detail', 'mobile-app-edit', 'mobile-app-versions', 'mobile-app-install-manage'].includes(route.name)
+    ? 'mobile-app-list'
+    : route.name
+  const group = pageGroups.find((item) => item.children.some((page) => {
+    if (page.name === routeName) return true
+    return page.children?.some((child) => child.name === routeName)
+  }))
   return group?.title || pageGroups[0]?.title || selectedProject.value?.name || ''
 })
+const editorChatDefaultMessages = computed(() => [
+  {
+    id: 'editor-chat-welcome',
+    role: 'assistant',
+    status: 'complete',
+    datetime: new Date().toISOString(),
+    content: [
+      {
+        type: 'markdown',
+        data: `我可以协助你编辑「${pageTitle.value}」。可以直接描述要生成、检查或优化的内容。`
+      }
+    ]
+  }
+])
+const editorChatSenderProps = {
+  placeholder: '输入编辑需求，例如：检查当前文案风险点',
+  actions: ['send'],
+  autosize: {
+    minRows: 2,
+    maxRows: 4
+  }
+}
+const editorChatMessageProps = {
+  assistant: {
+    name: 'AI 编辑助手',
+    avatar: () => h(RobotIcon),
+    variant: 'outline',
+    actions: ['copy', 'good', 'bad']
+  },
+  user: {
+    name: '我',
+    variant: 'text',
+    actions: false
+  }
+}
+const editorChatServiceConfig = computed(() => ({
+  stream: false,
+  endpoint: 'data:application/json,{}',
+  onComplete: (_isAborted, params) => ({
+    type: 'markdown',
+    data: createEditorChatReply(params?.prompt || '')
+  })
+}))
 
 const resolveIcon = (iconName) => iconMap[iconName] || ViewListIcon
 
+const createEditorChatReply = (prompt) => {
+  const normalizedPrompt = prompt.trim() || '当前编辑内容'
+  return [
+    `已收到你在「${pageTitle.value}」中的请求：${normalizedPrompt}`,
+    '',
+    '建议可以从这几项开始处理：',
+    '',
+    '1. 明确适用对象、版本范围和生效场景。',
+    '2. 检查必填字段、命名、尺寸、平台或法务条款是否完整。',
+    '3. 生成内容前先对照当前项目配置，避免跨项目复用错误信息。',
+    '',
+    '当前接入的是本地示例响应；后续可以把 `chatServiceConfig.endpoint` 替换为真实 AI 服务接口。'
+  ].join('\n')
+}
+
 const handleMenuChange = (name) => {
+  if (name === 'icon-list') {
+    router.push({ name, params: { projectId: getActiveIconProjectId() } })
+    return
+  }
+
   router.push({ name })
 }
 
@@ -344,6 +543,9 @@ watch(
   () => route.fullPath,
   () => {
     selectedProjectValue.value = localStorage.getItem(PROJECT_STORAGE_KEY) || defaultProjectValue
+    if (!showEditorChat.value) {
+      editorChatVisible.value = false
+    }
   }
 )
 
@@ -368,5 +570,17 @@ const handleClearNotifications = () => {
 
 const handleViewAllNotifications = () => {
   notificationPopupVisible.value = false
+}
+
+const handleUserMenuClick = ({ value }) => {
+  if (value !== 'logout') {
+    return
+  }
+
+  logout()
+  router.replace({
+    name: 'login',
+    query: route.fullPath ? { redirect: route.fullPath } : undefined
+  })
 }
 </script>

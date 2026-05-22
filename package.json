@@ -8,7 +8,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tdesign-vue-next/chat": "^0.5.2",
     "tdesign-icons-vue-next": "^0.4.4",
+    "tdesign-mobile-vue": "^1.14.1",
     "tdesign-vue-next": "^1.19.1",
     "vue": "^3.4.21",
     "vue-router": "^4.6.4"
