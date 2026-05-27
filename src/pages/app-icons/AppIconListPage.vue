@@ -1,70 +1,73 @@
 <template>
-  <div class="document-list-page">
-    <div class="document-list-panel">
-      <div class="document-list-toolbar">
-        <div class="document-list-actions">
-          <button class="document-primary-button" type="button" @click="openCreateDialog">
-            新建
-          </button>
-          <span class="document-selection-text">已选 {{ selectedCount }} 项</span>
-        </div>
+  <div>
+    <starter-list-page
+      v-model:keyword="keyword"
+      title="应用图标列表"
+      primary-action="新建"
+      search-placeholder="搜索应用、Bundle ID 或生成平台"
+      :breadcrumb="['应用图标管理', '应用图标列表']"
+      :columns="columns"
+      :data="filteredRows"
+      :selected-row-keys="selectedRowKeys"
+      @primary="openCreateDialog"
+      @select-change="handleSelectChange"
+    >
+      <template #actions>
+        <span class="starter-list-summary">已选 {{ selectedRowKeys.length }} 项</span>
+      </template>
 
-        <label class="document-search">
-          <search-icon />
-          <input v-model="keyword" type="search" placeholder="搜索应用、Bundle ID 或生成平台" />
-        </label>
-      </div>
+      <template #filters>
+        <t-select v-model="platformFilter" class="starter-list-filter-select" placeholder="生成平台">
+          <t-option value="all" label="全部平台" />
+          <t-option v-for="platform in appIconPlatformOptions" :key="platform.value" :value="platform.value" :label="platform.label" />
+        </t-select>
+        <t-select v-model="statusFilter" class="starter-list-filter-select" placeholder="状态">
+          <t-option value="all" label="全部状态" />
+          <t-option v-for="status in statusOptions" :key="status" :value="status" :label="status" />
+        </t-select>
+        <t-select v-model="sourceTypeFilter" class="starter-list-filter-select" placeholder="图标类型">
+          <t-option value="all" label="全部类型" />
+          <t-option value="text" label="文字图标" />
+          <t-option value="image" label="上传图片图标" />
+        </t-select>
+      </template>
 
-      <div class="document-table">
-        <div class="document-table-head document-table-row app-icon-table-row">
-          <span></span>
-          <span>应用图标</span>
-          <span>生成平台</span>
-          <span>源图规格</span>
-          <span>状态</span>
-          <span>最近更新</span>
-          <span>操作</span>
-        </div>
+      <template #name="{ row }">
+        <span class="app-icon-name-cell">
+          <span class="app-icon-preview" :style="getPreviewStyle(row)">
+            <img v-if="isImageIcon(row)" :src="row.sourcePreview" :alt="row.appName" />
+            <span v-else>{{ row.iconText || 'A' }}</span>
+          </span>
+          <span class="app-icon-name-main">
+            <span class="document-name">{{ row.name }}</span>
+            <small>{{ row.bundleId }}</small>
+          </span>
+        </span>
+      </template>
 
-        <div
-          v-for="item in filteredRows"
-          :key="item.id"
-          class="document-table-row app-icon-table-row"
-        >
-          <span class="document-cell-check">
-            <input type="checkbox" :checked="item.checked" />
-          </span>
-          <span class="app-icon-name-cell">
-            <span class="app-icon-preview" :style="getPreviewStyle(item)">
-              <img v-if="isImageIcon(item)" :src="item.sourcePreview" :alt="item.appName" />
-              <span v-else>{{ item.iconText || 'A' }}</span>
-            </span>
-            <span class="app-icon-name-main">
-              <span class="document-name">{{ item.name }}</span>
-              <small>{{ item.bundleId }}</small>
-            </span>
-          </span>
-          <span class="app-icon-platforms">
-            <span
-              v-for="platform in getPlatformLabels(item.platforms)"
-              :key="platform"
-              class="app-icon-platform-tag"
-            >
-              {{ platform }}
-            </span>
-          </span>
-          <span>{{ item.sourceSize }}</span>
-          <span>
-            <span class="document-status" :class="`is-${item.statusTone}`">{{ item.status }}</span>
-          </span>
-          <span>{{ item.updatedAt }}</span>
-          <span class="document-actions-cell">
-            <button type="button" @click="goToGenerate(item)">生成</button>
-            <button type="button" class="is-danger" @click="removeIcon(item)">删除</button>
-          </span>
-        </div>
-      </div>
-    </div>
+      <template #platforms="{ row }">
+        <t-space size="small" :break-line="true">
+          <t-tag v-for="platform in getPlatformLabels(row.platforms)" :key="platform" variant="light">
+            {{ platform }}
+          </t-tag>
+        </t-space>
+      </template>
+
+      <template #sourceType="{ row }">
+        {{ row.sourceType === 'image' ? '上传图片图标' : '文字图标' }}
+      </template>
+
+      <template #status="{ row }">
+        <t-tag :theme="getStatusTheme(row.statusTone)" variant="light">{{ row.status }}</t-tag>
+      </template>
+
+      <template #operation="{ row }">
+        <t-space size="small">
+          <t-button theme="primary" variant="text" @click="goToGenerate(row)">生成</t-button>
+          <t-button theme="danger" variant="text" @click="removeIcon(row)">删除</t-button>
+        </t-space>
+      </template>
+    </starter-list-page>
 
     <div v-if="createDialogVisible" class="icon-dialog-mask" @click.self="closeCreateDialog">
       <div class="icon-dialog app-icon-dialog">
@@ -178,8 +181,16 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ImageAddIcon, SearchIcon } from 'tdesign-icons-vue-next'
-import { MessagePlugin, Option as TOption, Select as TSelect } from 'tdesign-vue-next'
+import { ImageAddIcon } from 'tdesign-icons-vue-next'
+import {
+  Button as TButton,
+  MessagePlugin,
+  Option as TOption,
+  Select as TSelect,
+  Space as TSpace,
+  Tag as TTag
+} from 'tdesign-vue-next'
+import StarterListPage from '../../components/StarterListPage.vue'
 import {
   appIconPlatformOptions,
   buildGradient,
@@ -193,7 +204,11 @@ import {
 const route = useRoute()
 const router = useRouter()
 const keyword = ref('')
+const platformFilter = ref('all')
+const statusFilter = ref('all')
+const sourceTypeFilter = ref('all')
 const rows = ref(readAppIcons())
+const selectedRowKeys = ref(rows.value.filter((item) => item.checked).map((item) => item.id))
 const createDialogVisible = ref(false)
 const form = reactive({
   appName: '',
@@ -216,15 +231,28 @@ const platformLabelMap = appIconPlatformOptions.reduce((acc, platform) => {
   return acc
 }, {})
 
-const selectedCount = computed(() => rows.value.filter((item) => item.checked).length)
+const columns = [
+  { colKey: 'row-select', type: 'multiple', width: 48 },
+  { colKey: 'name', title: '应用图标', minWidth: 280 },
+  { colKey: 'platforms', title: '生成平台', minWidth: 220 },
+  { colKey: 'sourceSize', title: '源图规格', width: 130 },
+  { colKey: 'sourceType', title: '图标类型', width: 140 },
+  { colKey: 'status', title: '状态', width: 110 },
+  { colKey: 'updatedAt', title: '最近更新', width: 170 },
+  { colKey: 'operation', title: '操作', width: 120, fixed: 'right' }
+]
+
+const statusOptions = computed(() => [...new Set(rows.value.map((item) => item.status).filter(Boolean))])
 
 const filteredRows = computed(() => {
   const q = keyword.value.trim().toLowerCase()
-  if (!q) return rows.value
-
   return rows.value.filter((item) => {
     const platformText = getPlatformLabels(item.platforms).join(' ')
-    return `${item.name} ${item.appName} ${item.bundleId} ${platformText} ${item.version}`.toLowerCase().includes(q)
+    const matchKeyword = !q || `${item.name} ${item.appName} ${item.bundleId} ${platformText} ${item.version}`.toLowerCase().includes(q)
+    const matchPlatform = platformFilter.value === 'all' || (item.platforms || []).includes(platformFilter.value)
+    const matchStatus = statusFilter.value === 'all' || item.status === statusFilter.value
+    const matchSourceType = sourceTypeFilter.value === 'all' || (item.sourceType || 'text') === sourceTypeFilter.value
+    return matchKeyword && matchPlatform && matchStatus && matchSourceType
   })
 })
 
@@ -238,6 +266,21 @@ watch(
 
 const getPlatformLabels = (platforms) => {
   return (platforms || []).map((platform) => platformLabelMap[platform] || platform)
+}
+
+const getStatusTheme = (tone) => {
+  const themeMap = {
+    success: 'success',
+    active: 'success',
+    warning: 'warning',
+    processing: 'primary',
+    danger: 'danger'
+  }
+  return themeMap[tone] || 'default'
+}
+
+const handleSelectChange = (keys) => {
+  selectedRowKeys.value = keys
 }
 
 const getPreviewStyle = (item) => {
@@ -331,6 +374,7 @@ const goToGenerate = (item) => {
 const removeIcon = (item) => {
   const deleted = deleteAppIcon(item.id)
   rows.value = readAppIcons()
+  selectedRowKeys.value = selectedRowKeys.value.filter((key) => key !== item.id)
   MessagePlugin.success(deleted ? '应用图标已删除' : '应用图标不存在或已删除')
 }
 

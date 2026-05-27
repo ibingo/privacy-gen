@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import AppLayout from '../layouts/AppLayout.vue'
 import { pages } from '../config/pages'
-import { isAuthenticated } from '../utils/auth'
+import { isAuthenticated, isSuperAdmin } from '../utils/auth'
 
 const routes = [
   {
@@ -23,15 +23,162 @@ const routes = [
     }
   },
   {
+    path: '/beta-invite/:code',
+    name: 'beta-invite',
+    component: () => import('../pages/mobile-apps/MobileAppBetaInviteLandingPage.vue'),
+    meta: {
+      requiresAuth: false,
+      title: '内测邀请'
+    }
+  },
+  {
+    path: '/beta-user-invite/:id',
+    name: 'beta-user-invite',
+    component: () => import('../pages/mobile-apps/MobileAppBetaUserInvitePage.vue'),
+    meta: {
+      requiresAuth: false,
+      title: '特邀内测'
+    }
+  },
+  {
     path: '/',
     component: AppLayout,
     redirect: { name: 'login' },
     children: [
       {
+        path: 'workbench',
+        name: 'workbench',
+        component: () => import('../pages/workbench/WorkbenchPage.vue'),
+        meta: pages.workbench
+      },
+      {
         path: 'legal/projects',
         name: 'projects',
         component: () => import('../pages/legal/ProjectListPage.vue'),
         meta: pages.projects
+      },
+      ...[
+        'system-users',
+        'system-roles',
+        'system-permissions',
+        'system-menus',
+        'system-departments',
+        'system-posts',
+        'system-dicts',
+        'system-params',
+        'system-clients',
+        'system-projects'
+      ].map((name) => ({
+        path: pages[name].path.replace(/^\//, ''),
+        name,
+        component: () => import('../pages/system/SystemManagePage.vue'),
+        meta: {
+          ...pages[name],
+          requiresSuperAdmin: true
+        }
+      })),
+      ...[
+        'system-users',
+        'system-roles',
+        'system-permissions',
+        'system-menus',
+        'system-departments',
+        'system-posts',
+        'system-dicts',
+        'system-params',
+        'system-clients',
+        'system-projects'
+      ].map((name) => ({
+        path: `${pages[name].path.replace(/^\//, '')}/new`,
+        name: `${name}-create`,
+        component: () => import('../pages/system/SystemCreatePage.vue'),
+        meta: {
+          ...pages[name],
+          name: `${name}-create`,
+          path: `${pages[name].path}/new`,
+          title: `新建${pages[name].title.replace(/管理$/, '')}`,
+          description: `新增${pages[name].title.replace(/管理$/, '')}记录并维护基础配置。`,
+          requiresSuperAdmin: true
+        }
+      })),
+      {
+        path: 'system/testing/ip-whitelist',
+        name: 'system-ip-whitelist',
+        component: () => import('../pages/system/SystemIpWhitelistPage.vue'),
+        meta: {
+          ...pages['system-ip-whitelist'],
+          requiresSuperAdmin: true
+        }
+      },
+      {
+        path: 'system/testing/ip-whitelist/new',
+        name: 'system-ip-whitelist-create',
+        component: () => import('../pages/system/SystemIpWhitelistEditPage.vue'),
+        meta: {
+          ...pages['system-ip-whitelist-create'],
+          requiresSuperAdmin: true
+        }
+      },
+      {
+        path: 'system/testing/ip-whitelist/:id/edit',
+        name: 'system-ip-whitelist-edit',
+        component: () => import('../pages/system/SystemIpWhitelistEditPage.vue'),
+        meta: {
+          ...pages['system-ip-whitelist-edit'],
+          requiresSuperAdmin: true
+        }
+      },
+      {
+        path: 'system/projects/:code/edit',
+        alias: 'system/projects/:code/bindings',
+        name: 'system-projects-edit',
+        component: () => import('../pages/system/SystemProjectEditPage.vue'),
+        meta: {
+          ...pages['system-projects'],
+          name: 'system-projects-edit',
+          path: '/system/projects/:code/edit',
+          title: '编辑项目',
+          description: '维护项目信息，并配置项目与用户、角色、部门的绑定关系。',
+          requiresSuperAdmin: true
+        }
+      },
+      {
+        path: 'system/roles/:id/edit',
+        name: 'system-roles-edit',
+        component: () => import('../pages/system/SystemRoleEditPage.vue'),
+        meta: {
+          ...pages['system-roles'],
+          name: 'system-roles-edit',
+          path: '/system/roles/:id/edit',
+          title: '编辑角色',
+          description: '维护角色信息，并配置角色与权限、菜单的绑定关系。',
+          requiresSuperAdmin: true
+        }
+      },
+      {
+        path: 'system/users/:username/edit',
+        name: 'system-users-edit',
+        component: () => import('../pages/system/SystemUserEditPage.vue'),
+        meta: {
+          ...pages['system-users'],
+          name: 'system-users-edit',
+          path: '/system/users/:username/edit',
+          title: '编辑用户',
+          description: '维护用户账号信息，配置所属部门、岗位和角色。',
+          requiresSuperAdmin: true
+        }
+      },
+      {
+        path: 'account/profile',
+        name: 'profile',
+        component: () => import('../pages/account/ProfilePage.vue'),
+        meta: pages.profile
+      },
+      {
+        path: 'account/settings',
+        name: 'account-settings',
+        component: () => import('../pages/account/AccountSettingsPage.vue'),
+        meta: pages['account-settings']
       },
       {
         path: 'legal/privacy-policies',
@@ -266,6 +413,60 @@ const routes = [
         meta: pages['mobile-app-ab-tests']
       },
       {
+        path: 'legal/mobile-apps/beta-users',
+        name: 'mobile-app-beta-users',
+        component: () => import('../pages/mobile-apps/MobileAppBetaUserPage.vue'),
+        meta: pages['mobile-app-beta-users']
+      },
+      {
+        path: 'legal/mobile-apps/beta-users/new',
+        name: 'mobile-app-beta-user-create',
+        component: () => import('../pages/mobile-apps/MobileAppBetaUserEditPage.vue'),
+        meta: pages['mobile-app-beta-user-create']
+      },
+      {
+        path: 'legal/mobile-apps/beta-users/:id/edit',
+        name: 'mobile-app-beta-user-edit',
+        component: () => import('../pages/mobile-apps/MobileAppBetaUserEditPage.vue'),
+        meta: pages['mobile-app-beta-user-edit']
+      },
+      {
+        path: 'legal/mobile-apps/beta-invites',
+        name: 'mobile-app-beta-invites',
+        component: () => import('../pages/mobile-apps/MobileAppBetaInvitePage.vue'),
+        meta: pages['mobile-app-beta-invites']
+      },
+      {
+        path: 'legal/mobile-apps/beta-invites/new',
+        name: 'mobile-app-beta-invite-create',
+        component: () => import('../pages/mobile-apps/MobileAppBetaInviteEditPage.vue'),
+        meta: pages['mobile-app-beta-invite-create']
+      },
+      {
+        path: 'legal/mobile-apps/beta-invites/:id/edit',
+        name: 'mobile-app-beta-invite-edit',
+        component: () => import('../pages/mobile-apps/MobileAppBetaInviteEditPage.vue'),
+        meta: pages['mobile-app-beta-invite-edit']
+      },
+      {
+        path: 'legal/mobile-apps/beta-invite-templates',
+        name: 'mobile-app-beta-invite-templates',
+        component: () => import('../pages/mobile-apps/MobileAppBetaInviteTemplatePage.vue'),
+        meta: pages['mobile-app-beta-invite-templates']
+      },
+      {
+        path: 'legal/mobile-apps/beta-invite-templates/new',
+        name: 'mobile-app-beta-invite-template-create',
+        component: () => import('../pages/mobile-apps/MobileAppBetaInviteTemplateEditPage.vue'),
+        meta: pages['mobile-app-beta-invite-template-create']
+      },
+      {
+        path: 'legal/mobile-apps/beta-invite-templates/:id/edit',
+        name: 'mobile-app-beta-invite-template-edit',
+        component: () => import('../pages/mobile-apps/MobileAppBetaInviteTemplateEditPage.vue'),
+        meta: pages['mobile-app-beta-invite-template-edit']
+      },
+      {
         path: 'legal/mobile-apps/:id',
         name: 'mobile-app-detail',
         component: () => import('../pages/mobile-apps/MobileAppDetailPage.vue'),
@@ -309,6 +510,10 @@ router.beforeEach((to) => {
 
   if (isAuthenticated()) {
     if (to.name === 'login') {
+      return { name: 'workbench' }
+    }
+
+    if (to.meta?.requiresSuperAdmin && !isSuperAdmin()) {
       return { name: 'projects' }
     }
 

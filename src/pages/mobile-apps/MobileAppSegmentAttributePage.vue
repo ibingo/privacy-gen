@@ -7,10 +7,21 @@
           <span class="document-selection-text">已选 {{ selectedCount }} 项</span>
         </div>
 
-        <label class="document-search">
-          <search-icon />
-          <input v-model="keyword" type="search" placeholder="请输入内容搜索" />
-        </label>
+        <div class="document-list-actions">
+          <t-select v-model="typeFilter" class="starter-list-filter-select" placeholder="属性类型">
+            <t-option value="all" label="全部类型" />
+            <t-option v-for="type in typeOptions" :key="type" :value="type" :label="type" />
+          </t-select>
+          <t-select v-model="sourceFilter" class="starter-list-filter-select" placeholder="属性来源">
+            <t-option value="all" label="全部来源" />
+            <t-option value="default" label="默认属性" />
+            <t-option value="custom" label="自定义属性" />
+          </t-select>
+          <label class="document-search">
+            <search-icon />
+            <input v-model="keyword" type="search" placeholder="请输入内容搜索" />
+          </label>
+        </div>
       </div>
 
       <div class="document-table">
@@ -24,7 +35,7 @@
           <span>操作</span>
         </div>
 
-        <div v-for="attribute in filteredAttributes" :key="attribute.id" class="document-table-row segment-attribute-table-row">
+        <div v-for="attribute in pagedAttributes" :key="attribute.id" class="document-table-row segment-attribute-table-row">
           <span class="document-cell-check">
             <input type="checkbox" v-model="selectedIds" :value="attribute.id" />
           </span>
@@ -41,29 +52,59 @@
           </span>
         </div>
       </div>
+
+      <div v-if="filteredAttributes.length > 0" class="starter-list-pagination">
+        <t-pagination
+          v-model:current="currentPage"
+          v-model:page-size="pageSize"
+          :total="filteredAttributes.length"
+          :total-content="true"
+          :page-size-options="[5, 10, 20]"
+          :show-jumper="false"
+          :show-page-size="true"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { SearchIcon } from 'tdesign-icons-vue-next'
-import { MessagePlugin } from 'tdesign-vue-next'
+import { MessagePlugin, Option as TOption, Pagination as TPagination, Select as TSelect } from 'tdesign-vue-next'
 import { deleteSegmentAttribute, readSegmentAttributes } from '../../config/featureFlags'
 
 const router = useRouter()
 const keyword = ref('')
+const typeFilter = ref('all')
+const sourceFilter = ref('all')
 const selectedIds = ref([])
 const segmentAttributes = ref(readSegmentAttributes())
+const currentPage = ref(1)
+const pageSize = ref(5)
+const typeOptions = computed(() => [...new Set(segmentAttributes.value.map((attribute) => attribute.type).filter(Boolean))])
 
 const selectedCount = computed(() => selectedIds.value.length)
 const filteredAttributes = computed(() => {
   const q = keyword.value.trim().toLowerCase()
-  if (!q) return segmentAttributes.value
   return segmentAttributes.value.filter((attribute) => {
-    return `${attribute.name} ${attribute.key} ${attribute.type} ${attribute.description}`.toLowerCase().includes(q)
+    const matchKeyword = !q || `${attribute.name} ${attribute.key} ${attribute.type} ${attribute.description}`.toLowerCase().includes(q)
+    const matchType = typeFilter.value === 'all' || attribute.type === typeFilter.value
+    const matchSource = sourceFilter.value === 'all'
+      || (sourceFilter.value === 'default' && attribute.isDefault)
+      || (sourceFilter.value === 'custom' && !attribute.isDefault)
+    return matchKeyword && matchType && matchSource
   })
+})
+
+const pagedAttributes = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredAttributes.value.slice(start, start + pageSize.value)
+})
+
+watch([keyword, typeFilter, sourceFilter, pageSize], () => {
+  currentPage.value = 1
 })
 
 function handleDeleteAttribute (attribute) {

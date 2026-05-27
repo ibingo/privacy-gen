@@ -1,51 +1,30 @@
 <template>
-  <div class="app-launch-list-page">
-    <t-card class="app-launch-list-card" :bordered="false">
-      <template #title>
-        <div class="app-launch-card-title">
-          <span>开关管理</span>
-          <t-tag theme="primary" variant="light">共 {{ filteredToggles.length }} 项</t-tag>
-        </div>
-      </template>
-      <template #actions>
-        <t-space>
-          <t-select v-model="activeEnvironment" class="feature-filter-select" placeholder="访问">
-            <t-option value="all" label="全部环境" />
-            <t-option v-for="env in environments" :key="env" :value="env" :label="env" />
-          </t-select>
-          <t-select v-model="activeStatus" class="feature-filter-select" placeholder="状态">
-            <t-option value="all" label="全部状态" />
-            <t-option v-for="status in flagStatusOptions" :key="status.value" :value="status.value" :label="status.label" />
-          </t-select>
-          <t-select v-model="activeTag" class="feature-filter-select" placeholder="标签">
-            <t-option value="all" label="全部标签" />
-            <t-option v-for="tag in tags" :key="tag" :value="tag" :label="tag" />
-          </t-select>
-          <t-input
-            v-model="keyword"
-            class="app-launch-search feature-flag-search"
-            clearable
-            placeholder="搜索名称、标识或描述"
-          >
-            <template #prefix-icon>
-              <search-icon />
-            </template>
-          </t-input>
-          <t-button theme="primary" @click="router.push({ name: 'mobile-app-experiment-create' })">
-            <template #icon><add-icon /></template>
-            新建
-          </t-button>
-        </t-space>
-      </template>
+  <starter-list-page
+    v-model:keyword="keyword"
+    title="开关管理"
+    primary-action="新建"
+    search-placeholder="搜索名称、标识或描述"
+    :breadcrumb="['功能特性管理', '开关管理']"
+    :columns="columns"
+    :data="filteredToggles"
+    @primary="router.push({ name: 'mobile-app-experiment-create' })"
+    @row-click="handleRowClick"
+  >
+    <template #filters>
+      <t-select v-model="activeEnvironment" class="starter-list-filter-select" placeholder="环境">
+        <t-option value="all" label="全部环境" />
+        <t-option v-for="env in environments" :key="env" :value="env" :label="env" />
+      </t-select>
+      <t-select v-model="activeStatus" class="starter-list-filter-select" placeholder="状态">
+        <t-option value="all" label="全部状态" />
+        <t-option v-for="status in flagStatusOptions" :key="status.value" :value="status.value" :label="status.label" />
+      </t-select>
+      <t-select v-model="activeTag" class="starter-list-filter-select" placeholder="标签">
+        <t-option value="all" label="全部标签" />
+        <t-option v-for="tag in tags" :key="tag" :value="tag" :label="tag" />
+      </t-select>
+    </template>
 
-      <t-table
-        row-key="id"
-        hover
-        :columns="columns"
-        :data="filteredToggles"
-        :pagination="pagination"
-        @row-click="handleRowClick"
-      >
         <template #intro="{ row }">
           <div class="feature-flag-intro">
             <div>
@@ -88,25 +67,20 @@
             <t-button theme="primary" variant="text" @click="router.push({ name: 'mobile-app-flag-prerequisite-edit', params: { id: row.id }, query: { from: 'list' } })">前置条件</t-button>
           </t-space>
         </template>
-      </t-table>
-    </t-card>
-  </div>
+  </starter-list-page>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { AddIcon, SearchIcon } from 'tdesign-icons-vue-next'
 import {
   Button as TButton,
-  Card as TCard,
-  Input as TInput,
   Option as TOption,
   Select as TSelect,
   Space as TSpace,
-  Table as TTable,
   Tag as TTag
 } from 'tdesign-vue-next'
+import StarterListPage from '../../components/StarterListPage.vue'
 import { flagStatusOptions, readFeatureFlags } from '../../config/featureFlags'
 import { readMobileApps } from '../../config/mobileApps'
 
@@ -128,12 +102,6 @@ const columns = [
   { colKey: 'updatedAt', title: '更新时间', width: 190 },
   { colKey: 'operation', title: '操作', width: 220, fixed: 'right' }
 ]
-const pagination = {
-  defaultCurrent: 1,
-  defaultPageSize: 10,
-  showJumper: false
-}
-
 const filteredToggles = computed(() => {
   const q = keyword.value.trim().toLowerCase()
   return toggles.value.filter((toggle) => {

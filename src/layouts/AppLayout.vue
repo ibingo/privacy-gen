@@ -1,163 +1,29 @@
 <template>
   <t-layout class="starter-shell">
-    <t-header class="starter-header">
-      <div class="topbar-left">
-        <div class="starter-logo">
+    <t-aside v-if="showProjectMenu" class="starter-aside" :class="{ 'is-collapsed': asideCollapsed }">
+      <div class="starter-aside-brand">
+        <button class="starter-logo starter-logo-button" type="button" title="去首页" @click="goHome">
           <span class="logo-mark">P</span>
           <span>Privacy Gen</span>
-        </div>
-        <t-button class="topbar-icon-button" variant="text" shape="square" title="折叠菜单">
-          <menu-icon />
+        </button>
+        <t-button class="aside-collapse-button" variant="text" shape="square" title="折叠菜单" @click="asideCollapsed = !asideCollapsed">
+          <menu-unfold-icon v-if="asideCollapsed" />
+          <menu-fold-icon v-else />
         </t-button>
-        <div class="topbar-search">
-          <search-icon />
-          <input type="search" placeholder="请输入搜索内容" />
-        </div>
       </div>
 
-      <div class="topbar-actions">
-        <t-popup
-          v-model="notificationPopupVisible"
-          trigger="click"
-          placement="bottom-right"
-          overlay-inner-class-name="notification-popup"
-          :overlay-inner-style="{ padding: 0 }"
-        >
-          <t-badge :count="notificationCount">
-            <t-button class="topbar-icon-button" variant="text" shape="square" title="通知中心">
-              <mail-icon />
-            </t-button>
-          </t-badge>
-          <template #content>
-            <div class="notification-panel">
-              <div class="notification-panel-header">
-                <h3>通知中心</h3>
-                <button
-                  class="notification-clear"
-                  type="button"
-                  @click="handleClearNotifications"
-                >
-                  清空
-                </button>
-              </div>
-
-              <div v-if="notifications.length" class="notification-list">
-                <button
-                  v-for="notification in notifications"
-                  :key="notification.value"
-                  class="notification-item"
-                  type="button"
-                >
-                  <p class="notification-item-title">{{ notification.title }}</p>
-                  <div class="notification-item-meta">
-                    <span class="notification-item-category">{{ notification.category }}</span>
-                    <span class="notification-item-time">{{ notification.time }}</span>
-                  </div>
-                </button>
-              </div>
-
-              <div v-else class="notification-empty">暂无通知</div>
-
-              <button class="notification-more" type="button" @click="handleViewAllNotifications">
-                查看全部
-              </button>
-            </div>
-          </template>
-        </t-popup>
-
-        <t-button class="topbar-icon-button" variant="text" shape="square" title="代码仓库">
-          <logo-github-icon />
-        </t-button>
-
-        <t-button class="topbar-icon-button" variant="text" shape="square" title="帮助">
-          <help-circle-icon />
-        </t-button>
-
-        <t-dropdown
-          :options="localeOptions"
-          trigger="click"
-          placement="bottom-right"
-          @click="handleLocaleChange"
-        >
-          <t-button class="topbar-icon-button" variant="text" shape="square" title="国际化切换">
-            <translate-icon />
-          </t-button>
-        </t-dropdown>
-
-        <t-popup
-          v-model="projectPopupVisible"
-          trigger="click"
-          placement="bottom-right"
-          overlay-inner-class-name="project-popup"
-          :overlay-inner-style="{ padding: 0 }"
-        >
-          <button class="topbar-project" type="button">
-            <folder-open-icon />
-            <span>{{ selectedProject.name }}</span>
-            <chevron-down-icon />
-          </button>
-          <template #content>
-            <div class="project-panel">
-              <div class="project-panel-scroll">
-                <section
-                  v-for="group in projectGroups"
-                  :key="group.title"
-                  class="project-group"
-                >
-                  <p class="project-group-title">{{ group.title }}</p>
-                  <div class="project-grid">
-                    <button
-                      v-for="project in group.children"
-                      :key="project.value"
-                      class="project-option"
-                      :class="{ 'is-active': project.value === selectedProjectValue }"
-                      type="button"
-                      @click="handleProjectChange(project)"
-                    >
-                      <span class="project-option-icon">{{ project.shortName }}</span>
-                      <span class="project-option-main">
-                        <span class="project-option-name">
-                          <span>{{ project.name }}</span>
-                          <span class="project-option-tag">{{ project.status }}</span>
-                        </span>
-                        <span class="project-option-desc">{{ project.description }}</span>
-                      </span>
-                    </button>
-                  </div>
-                </section>
-              </div>
-              <button class="project-more" type="button" @click="handleViewMoreProjects">查看更多</button>
-            </div>
-          </template>
-        </t-popup>
-
-        <t-dropdown
-          :options="userOptions"
-          trigger="click"
-          placement="bottom-right"
-          @click="handleUserMenuClick"
-        >
-          <button class="topbar-user" type="button">
-            <user-circle-icon />
-            <span>法务管理员</span>
-            <chevron-down-icon />
-          </button>
-        </t-dropdown>
-      </div>
-    </t-header>
-
-    <t-layout class="starter-body">
-      <t-aside v-if="showProjectMenu" class="starter-aside">
+      <div class="starter-aside-menu">
         <t-menu
           :value="activeMenu"
           :expanded="expandedMenus"
+          :collapsed="asideCollapsed"
           theme="light"
           class="nav-menu"
           @change="handleMenuChange"
           @expand="handleExpand"
         >
           <t-submenu
-            v-for="group in pageGroups"
+            v-for="group in visiblePageGroups"
             :key="group.title"
             :value="group.title"
           >
@@ -198,18 +64,166 @@
             </template>
           </t-submenu>
         </t-menu>
-      </t-aside>
+      </div>
 
-      <t-layout class="starter-main-layout">
-        <div v-if="showPageHeading" class="page-heading">
-          <p class="eyebrow">{{ currentGroupTitle }}</p>
-          <h2>{{ pageTitle }}</h2>
-          <p>{{ pageDescription }}</p>
+      <div class="starter-aside-footer">TDesign Starter 0.12.0</div>
+    </t-aside>
+
+    <t-layout class="starter-main-layout" :class="{ 'is-account-route': accountRouteNames.includes(route.name) }">
+      <t-header class="starter-header">
+        <div class="topbar-left">
+          <div v-if="!showProjectMenu" class="starter-logo">
+            <span class="logo-mark">P</span>
+            <span>Privacy Gen</span>
+          </div>
+          <t-button class="topbar-icon-button" variant="text" shape="square" title="去首页" @click="goHome">
+            <home-icon />
+          </t-button>
+          <div class="topbar-search">
+            <search-icon />
+            <input type="search" placeholder="请输入搜索内容" />
+          </div>
         </div>
-        <t-content class="starter-main-content">
-          <router-view />
-        </t-content>
-      </t-layout>
+
+        <div class="topbar-actions">
+          <t-popup
+            v-model="notificationPopupVisible"
+            trigger="click"
+            placement="bottom-right"
+            overlay-inner-class-name="notification-popup"
+            :overlay-inner-style="{ padding: 0 }"
+          >
+            <t-badge :count="notificationCount">
+              <t-button class="topbar-icon-button" variant="text" shape="square" title="通知中心">
+                <mail-icon />
+              </t-button>
+            </t-badge>
+            <template #content>
+              <div class="notification-panel">
+                <div class="notification-panel-header">
+                  <h3>通知中心</h3>
+                  <button
+                    class="notification-clear"
+                    type="button"
+                    @click="handleClearNotifications"
+                  >
+                    清空
+                  </button>
+                </div>
+
+                <div v-if="notifications.length" class="notification-list">
+                  <button
+                    v-for="notification in notifications"
+                    :key="notification.value"
+                    class="notification-item"
+                    type="button"
+                  >
+                    <p class="notification-item-title">{{ notification.title }}</p>
+                    <div class="notification-item-meta">
+                      <span class="notification-item-category">{{ notification.category }}</span>
+                      <span class="notification-item-time">{{ notification.time }}</span>
+                    </div>
+                  </button>
+                </div>
+
+                <div v-else class="notification-empty">暂无通知</div>
+
+                <button class="notification-more" type="button" @click="handleViewAllNotifications">
+                  查看全部
+                </button>
+              </div>
+            </template>
+          </t-popup>
+
+          <t-button class="topbar-icon-button" variant="text" shape="square" title="代码仓库">
+            <logo-github-icon />
+          </t-button>
+
+          <t-button class="topbar-icon-button" variant="text" shape="square" title="帮助">
+            <help-circle-icon />
+          </t-button>
+
+          <t-dropdown
+            :options="localeOptions"
+            trigger="click"
+            placement="bottom-right"
+            @click="handleLocaleChange"
+          >
+            <t-button class="topbar-icon-button" variant="text" shape="square" title="国际化切换">
+              <translate-icon />
+            </t-button>
+          </t-dropdown>
+
+          <t-popup
+            v-model="projectPopupVisible"
+            trigger="click"
+            placement="bottom-right"
+            overlay-inner-class-name="project-popup"
+            :overlay-inner-style="{ padding: 0 }"
+          >
+            <button class="topbar-project" type="button">
+              <folder-open-icon />
+              <span>{{ selectedProject.name }}</span>
+              <chevron-down-icon />
+            </button>
+            <template #content>
+              <div class="project-panel">
+                <div class="project-panel-scroll">
+                  <section
+                    v-for="group in projectGroups"
+                    :key="group.title"
+                    class="project-group"
+                  >
+                    <p class="project-group-title">{{ group.title }}</p>
+                    <div class="project-grid">
+                      <button
+                        v-for="project in group.children"
+                        :key="project.value"
+                        class="project-option"
+                        :class="{ 'is-active': project.value === selectedProjectValue }"
+                        type="button"
+                        @click="handleProjectChange(project)"
+                      >
+                        <span class="project-option-icon">{{ project.shortName }}</span>
+                        <span class="project-option-main">
+                          <span class="project-option-name">
+                            <span>{{ project.name }}</span>
+                            <span class="project-option-tag">{{ project.status }}</span>
+                          </span>
+                          <span class="project-option-desc">{{ project.description }}</span>
+                        </span>
+                      </button>
+                    </div>
+                  </section>
+                </div>
+                <button class="project-more" type="button" @click="handleViewMoreProjects">查看更多</button>
+              </div>
+            </template>
+          </t-popup>
+
+          <t-dropdown
+            :options="userOptions"
+            trigger="click"
+            placement="bottom-right"
+            @click="handleUserMenuClick"
+          >
+            <button class="topbar-user" type="button">
+              <user-circle-icon />
+              <span>法务管理员</span>
+              <chevron-down-icon />
+            </button>
+          </t-dropdown>
+        </div>
+      </t-header>
+
+      <div v-if="showPageHeading" class="page-heading">
+        <p class="eyebrow">{{ currentGroupTitle }}</p>
+        <h2>{{ pageTitle }}</h2>
+        <p>{{ pageDescription }}</p>
+      </div>
+      <t-content class="starter-main-content">
+        <router-view />
+      </t-content>
     </t-layout>
 
     <div v-if="showEditorChat" class="editor-chat-entry">
@@ -264,7 +278,7 @@
 </template>
 
 <script setup>
-import { computed, h, ref, watch } from 'vue'
+import { computed, h, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   AppIcon,
@@ -275,11 +289,13 @@ import {
   FileIconIcon,
   FolderOpenIcon,
   HelpCircleIcon,
+  HomeIcon,
   ImageEditIcon,
   ImageAddIcon,
   LogoGithubIcon,
   MailIcon,
-  MenuIcon,
+  MenuFoldIcon,
+  MenuUnfoldIcon,
   MobileListIcon,
   LogoutIcon,
   RobotIcon,
@@ -310,12 +326,12 @@ import { pageGroups, pages } from '../config/pages'
 import {
   defaultProjectRouteName,
   defaultProjectValue,
-  existingProjects,
   PROJECT_STORAGE_KEY,
-  projectGroups
+  projectGroups as staticGroups
 } from '../config/projects'
+import { getProjects } from '../api/projects'
 import { getActiveIconProjectId } from '../config/iconProjects'
-import { logout } from '../utils/auth'
+import { isSuperAdmin, logout } from '../utils/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -326,8 +342,11 @@ const expandedMenus = ref(pageGroups.flatMap((group) => [
 const selectedProjectValue = ref(localStorage.getItem(PROJECT_STORAGE_KEY) || defaultProjectValue)
 const selectedLocaleValue = ref('zh-CN')
 const projectPopupVisible = ref(false)
+const projectGroups = ref(staticGroups)
+const existingProjects = computed(() => projectGroups.value.flatMap((g) => g.children))
 const notificationPopupVisible = ref(false)
 const editorChatVisible = ref(false)
+const asideCollapsed = ref(false)
 
 const locales = [
   { value: 'zh-CN', label: '简体中文' },
@@ -365,6 +384,7 @@ const iconMap = {
   AppIcon,
   FileIcon,
   FileIconIcon,
+  FolderOpenIcon,
   ImageAddIcon,
   ImageEditIcon,
   MobileListIcon,
@@ -372,11 +392,19 @@ const iconMap = {
   SecuredIcon,
   Setting1Icon,
   TranslateIcon,
+  UserCircleIcon,
   ViewListIcon,
   ViewModuleIcon
 }
 
 const activeMenu = computed(() => {
+  if (route.name?.startsWith?.('system-') && route.name?.endsWith?.('-create')) {
+    return route.name.replace(/-create$/, '')
+  }
+  if (route.name === 'system-projects-edit') return 'system-projects'
+  if (route.name === 'system-roles-edit') return 'system-roles'
+  if (route.name === 'system-users-edit') return 'system-users'
+  if (['system-ip-whitelist-create', 'system-ip-whitelist-edit'].includes(route.name)) return 'system-ip-whitelist'
   if (['icon-edit', 'icon-create'].includes(route.name)) return 'icon-list'
   if (['app-icon-create', 'app-icon-generate'].includes(route.name)) return 'app-icon-list'
   if (['app-launch-create', 'app-launch-edit'].includes(route.name)) return 'app-launch-list'
@@ -385,14 +413,49 @@ const activeMenu = computed(() => {
   if (['mobile-app-flag-configs', 'mobile-app-flag-config-edit', 'mobile-app-flag-prerequisite-edit'].includes(route.name)) return 'mobile-app-experiments'
   if (['mobile-app-segment-edit', 'mobile-app-segment-create'].includes(route.name)) return 'mobile-app-segments'
   if (['mobile-app-segment-attribute-detail', 'mobile-app-segment-attribute-create'].includes(route.name)) return 'mobile-app-segment-attributes'
+  if (['mobile-app-beta-user-create', 'mobile-app-beta-user-edit'].includes(route.name)) return 'mobile-app-beta-users'
+  if (['mobile-app-beta-invite-create', 'mobile-app-beta-invite-edit'].includes(route.name)) return 'mobile-app-beta-invites'
+  if (['mobile-app-beta-invite-template-create', 'mobile-app-beta-invite-template-edit'].includes(route.name)) return 'mobile-app-beta-invite-templates'
   if (route.name === 'mobile-app-flag-approval-edit') return 'mobile-app-flag-approvals'
   return route.name || 'home'
 })
 const pageMeta = computed(() => pages[route.name] || pages[defaultProjectRouteName] || pages.projects)
 const pageTitle = computed(() => pageMeta.value.title)
 const pageDescription = computed(() => pageMeta.value.description)
-const showProjectMenu = computed(() => route.name !== 'projects')
-const showPageHeading = computed(() => !['projects', 'i18n-task-create', 'icon-edit', 'icon-create', 'app-launch-edit', 'mobile-app-overview', 'mobile-app-detail', 'mobile-app-edit', 'mobile-app-versions', 'mobile-app-install-manage', 'mobile-app-experiment-edit', 'mobile-app-experiment-create', 'mobile-app-flag-config-edit', 'mobile-app-segment-edit', 'mobile-app-segment-attribute-create', 'mobile-app-segment-attribute-detail', 'mobile-app-flag-approval-edit'].includes(route.name))
+const accountRouteNames = ['profile', 'account-settings']
+const systemRouteNames = ['system-users', 'system-roles', 'system-permissions', 'system-menus', 'system-departments', 'system-posts', 'system-dicts', 'system-params', 'system-clients', 'system-projects', 'system-ip-whitelist']
+const isSystemRoute = computed(() => systemRouteNames.includes(route.name) || systemRouteNames.some((name) => route.name === `${name}-create`) || route.name === 'system-projects-edit' || route.name === 'system-roles-edit' || route.name === 'system-users-edit' || route.name === 'system-ip-whitelist-edit')
+const shellRouteNames = ['projects', 'workbench']
+const starterListRouteNames = [
+  'privacy-list',
+  'agreement-list',
+  'i18n-copy-list',
+  'i18n-task',
+  'icon-project-list',
+  'app-icon-list',
+  'app-launch-list',
+  'mobile-app-experiments',
+  'mobile-app-ab-tests',
+  'mobile-app-flag-approvals',
+  'mobile-app-segments',
+  'mobile-app-segment-attributes',
+  'mobile-app-beta-users',
+  'mobile-app-beta-invites',
+  'mobile-app-beta-invite-templates'
+]
+const visiblePageGroups = computed(() => {
+  if (isSystemRoute.value) {
+    return pageGroups.filter((group) => group.title === '系统管理' && isSuperAdmin())
+  }
+
+  if (accountRouteNames.includes(route.name)) {
+    return pageGroups.filter((group) => group.title === '账号中心')
+  }
+
+  return pageGroups.filter((group) => !group.adminOnly && group.title !== '账号中心')
+})
+const showProjectMenu = computed(() => !shellRouteNames.includes(route.name))
+const showPageHeading = computed(() => !isSystemRoute.value && !starterListRouteNames.includes(route.name) && !['projects', 'workbench', 'profile', 'i18n-task-create', 'icon-edit', 'icon-create', 'app-launch-edit', 'mobile-app-overview', 'mobile-app-detail', 'mobile-app-edit', 'mobile-app-versions', 'mobile-app-install-manage', 'mobile-app-experiment-edit', 'mobile-app-experiment-create', 'mobile-app-flag-config-edit', 'mobile-app-segment-edit', 'mobile-app-segment-attribute-create', 'mobile-app-segment-attribute-detail', 'mobile-app-flag-approval-edit', 'mobile-app-beta-user-create', 'mobile-app-beta-user-edit', 'mobile-app-beta-invite-create', 'mobile-app-beta-invite-edit', 'mobile-app-beta-invite-template-create', 'mobile-app-beta-invite-template-edit'].includes(route.name))
 const editorRouteNames = [
   'privacy',
   'agreement',
@@ -406,7 +469,13 @@ const editorRouteNames = [
 ]
 const showEditorChat = computed(() => editorRouteNames.includes(route.name))
 const selectedProject = computed(() => {
-  return existingProjects.find((project) => project.value === selectedProjectValue.value) || existingProjects[0]
+  return existingProjects.value.find((project) => project.value === selectedProjectValue.value) || existingProjects.value[0] || {
+    value: defaultProjectValue,
+    name: '请选择产品',
+    shortName: '',
+    status: '',
+    description: ''
+  }
 })
 const localeOptions = computed(() => {
   return locales.map((locale) => ({
@@ -439,7 +508,69 @@ const userOptions = computed(() => [
     prefixIcon: () => h(LogoutIcon)
   }
 ])
+
+const getProjectGroupTitle = (project) => {
+  if (project.group && typeof project.group === 'object') {
+    return project.group.title || project.group.name || project.group.label
+  }
+
+  return project.groupTitle
+    || project.groupName
+    || project.projectGroupName
+    || project.categoryName
+    || project.category
+    || project.group
+    || '项目列表'
+}
+
+const normalizeProject = (project) => {
+  const name = project.name || project.label || project.title || project.value || '未命名项目'
+  return {
+    ...project,
+    value: project.value || project.id || project.code || project.key || name,
+    name,
+    shortName: project.shortName || project.abbr || name.slice(0, 1),
+    status: project.status || '已启用',
+    statusTone: project.statusTone || 'active',
+    description: project.description || project.desc || ''
+  }
+}
+
+const groupProjects = (projects) => {
+  if (!Array.isArray(projects) || !projects.length) return staticGroups
+
+  const grouped = new Map()
+  projects.forEach((project) => {
+    const normalizedProject = normalizeProject(project)
+    const groupTitle = getProjectGroupTitle(project)
+    if (!grouped.has(groupTitle)) {
+      grouped.set(groupTitle, {
+        title: groupTitle,
+        children: []
+      })
+    }
+    grouped.get(groupTitle).children.push(normalizedProject)
+  })
+
+  return Array.from(grouped.values())
+}
+
+const syncSelectedProject = () => {
+  const projects = existingProjects.value
+  if (!projects.length) return
+
+  const storedValue = localStorage.getItem(PROJECT_STORAGE_KEY)
+  const nextValue = projects.some((project) => project.value === storedValue)
+    ? storedValue
+    : projects[0].value
+
+  selectedProjectValue.value = nextValue
+  localStorage.setItem(PROJECT_STORAGE_KEY, nextValue)
+}
 const currentGroupTitle = computed(() => {
+  if (accountRouteNames.includes(route.name)) return '账号中心'
+  if (isSystemRoute.value) return '系统管理'
+
   const routeName = ['app-launch-create', 'app-launch-edit'].includes(route.name)
     ? 'app-launch-list'
     : ['app-icon-create', 'app-icon-generate'].includes(route.name)
@@ -459,7 +590,7 @@ const currentGroupTitle = computed(() => {
     : ['mobile-app-detail', 'mobile-app-edit', 'mobile-app-versions', 'mobile-app-install-manage'].includes(route.name)
     ? 'mobile-app-list'
     : route.name
-  const group = pageGroups.find((item) => item.children.some((page) => {
+  const group = visiblePageGroups.value.find((item) => item.children.some((page) => {
     if (page.name === routeName) return true
     return page.children?.some((child) => child.name === routeName)
   }))
@@ -539,6 +670,11 @@ const handleExpand = (values) => {
   expandedMenus.value = values
 }
 
+const goHome = () => {
+  if (route.name === 'workbench') return
+  router.push({ name: 'workbench' })
+}
+
 watch(
   () => route.fullPath,
   () => {
@@ -549,10 +685,24 @@ watch(
   }
 )
 
+onMounted(async () => {
+  try {
+    const projects = await getProjects()
+    projectGroups.value = groupProjects(projects)
+    syncSelectedProject()
+  } catch {
+    projectGroups.value = staticGroups
+    syncSelectedProject()
+  }
+})
+
 const handleProjectChange = (data) => {
   selectedProjectValue.value = data.value
   localStorage.setItem(PROJECT_STORAGE_KEY, data.value)
   projectPopupVisible.value = false
+  if (route.name !== defaultProjectRouteName) {
+    router.push({ name: defaultProjectRouteName })
+  }
 }
 
 const handleLocaleChange = (data) => {
@@ -572,12 +722,22 @@ const handleViewAllNotifications = () => {
   notificationPopupVisible.value = false
 }
 
-const handleUserMenuClick = ({ value }) => {
+const handleUserMenuClick = async ({ value }) => {
+  if (value === 'profile') {
+    router.push({ name: 'profile' })
+    return
+  }
+
+  if (value === 'settings') {
+    router.push({ name: 'account-settings' })
+    return
+  }
+
   if (value !== 'logout') {
     return
   }
 
-  logout()
+  await logout()
   router.replace({
     name: 'login',
     query: route.fullPath ? { redirect: route.fullPath } : undefined

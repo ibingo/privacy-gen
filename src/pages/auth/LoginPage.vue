@@ -79,7 +79,19 @@
           </div>
         </t-form>
 
-        <p class="login-demo-tip">演示账号：admin / 123456</p>
+        <p class="login-demo-tip">演示账号：admin / admin123</p>
+
+        <t-button
+          v-if="isDev"
+          theme="warning"
+          variant="dashed"
+          size="large"
+          block
+          style="margin-top: 8px"
+          @click="handleDevLogin"
+        >
+          开发者登录（跳过认证）
+        </t-button>
       </section>
 
       <section class="login-visual" aria-hidden="true">
@@ -148,7 +160,9 @@ import {
   Input as TInput,
   MessagePlugin
 } from 'tdesign-vue-next'
-import { login } from '../../utils/auth'
+import { login, devLogin, isSuperAdmin } from '../../utils/auth'
+
+const isDev = import.meta.env.DEV
 
 const router = useRouter()
 const route = useRoute()
@@ -156,7 +170,7 @@ const form = ref()
 const rememberMe = ref(true)
 const formData = reactive({
   username: 'admin',
-  password: '123456'
+  password: 'admin123'
 })
 
 const rules = {
@@ -164,20 +178,34 @@ const rules = {
   password: [{ required: true, message: '请输入密码', type: 'error' }]
 }
 
+const handleDevLogin = async () => {
+  try {
+    await devLogin()
+    const redirect = resolveLoginRedirect()
+    router.replace(redirect)
+  } catch (e) {
+    MessagePlugin.error(e.message || '开发者登录失败')
+  }
+}
+
 const handleSubmit = async ({ validateResult }) => {
   if (validateResult !== true) {
     return
   }
 
-  const matched = login(formData)
-
-  if (!matched) {
-    MessagePlugin.error('账号或密码错误')
-    return
+  try {
+    await login(formData)
+    const redirect = resolveLoginRedirect()
+    MessagePlugin.success('登录成功')
+    router.replace(redirect)
+  } catch (e) {
+    MessagePlugin.error(e.message || '账号或密码错误')
   }
+}
 
-  const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/legal/projects'
-  MessagePlugin.success('登录成功')
-  router.replace(redirect)
+const resolveLoginRedirect = () => {
+  const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
+  if (isSuperAdmin()) return '/workbench'
+  return redirect && redirect !== '/workbench' ? redirect : '/legal/projects'
 }
 </script>

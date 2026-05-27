@@ -1,5 +1,97 @@
 export const pageGroups = [
   {
+    title: '系统管理',
+    icon: 'RootListIcon',
+    adminOnly: true,
+    children: [
+      {
+        name: 'system-users',
+        path: '/system/users',
+        title: '用户管理',
+        description: '维护系统账号、登录状态、所属部门和数据权限。',
+        icon: 'UserCircleIcon'
+      },
+      {
+        name: 'system-roles',
+        path: '/system/roles',
+        title: '角色管理',
+        description: '配置角色权限、菜单授权和功能范围。',
+        icon: 'SecuredIcon'
+      },
+      {
+        name: 'system-permissions',
+        path: '/system/permissions',
+        title: '权限管理',
+        description: '查看系统权限点、权限编码和权限说明。',
+        icon: 'SecuredIcon'
+      },
+      {
+        name: 'system-menus',
+        path: '/system/menus',
+        title: '菜单管理',
+        description: '维护系统菜单、路由、按钮权限和展示顺序。',
+        icon: 'ViewListIcon'
+      },
+      {
+        name: 'system-departments',
+        path: '/system/departments',
+        title: '部门管理',
+        description: '管理组织部门、负责人和层级关系。',
+        icon: 'RootListIcon'
+      },
+      {
+        name: 'system-posts',
+        path: '/system/posts',
+        title: '岗位管理',
+        description: '维护岗位编码、岗位名称和启停状态。',
+        icon: 'UserCircleIcon'
+      },
+      {
+        name: 'system-dicts',
+        path: '/system/dicts',
+        title: '字典管理',
+        description: '管理系统字典类型、枚举值和业务展示文案。',
+        icon: 'FileIcon'
+      },
+      {
+        name: 'system-params',
+        path: '/system/params',
+        title: '参数设置',
+        description: '维护系统运行参数、默认配置和开关项。',
+        icon: 'Setting1Icon'
+      },
+      {
+        name: 'system-clients',
+        path: '/system/clients',
+        title: '客户端管理',
+        description: '管理接入客户端、密钥、回调地址和授权范围。',
+        icon: 'MobileListIcon'
+      },
+      {
+        name: 'system-projects',
+        path: '/system/projects',
+        title: '项目管理',
+        description: '维护项目信息，配置项目与用户、角色、部门的绑定关系。',
+        icon: 'FolderOpenIcon'
+      },
+      {
+        name: 'system-test-management',
+        title: '测试管理',
+        description: '维护管理侧测试访问和环境准入配置。',
+        icon: 'Setting1Icon',
+        children: [
+          {
+            name: 'system-ip-whitelist',
+            path: '/system/testing/ip-whitelist',
+            title: 'IP 白名单',
+            description: '管理允许进入内测环境的 IP 与 IP 段白名单。',
+            icon: 'ViewListIcon'
+          }
+        ]
+      },
+    ]
+  },
+  {
     title: '法务',
     icon: 'RootListIcon',
     children: [
@@ -151,6 +243,35 @@ export const pageGroups = [
         title: 'AB 测试',
         description: '管理移动端实验流量、版本策略、分组命中和转化指标。',
         icon: 'Setting1Icon'
+      },
+      {
+        name: 'mobile-app-internal-testing',
+        title: '内部测试',
+        description: '维护业务侧内测用户、测试发布和灰度验证相关配置。',
+        icon: 'Setting1Icon',
+        children: [
+          {
+            name: 'mobile-app-beta-users',
+            path: '/legal/mobile-apps/beta-users',
+            title: '内测用户列表',
+            description: '管理允许进入业务侧内测环境的用户白名单。',
+            icon: 'ViewListIcon'
+          },
+          {
+            name: 'mobile-app-beta-invites',
+            path: '/legal/mobile-apps/beta-invites',
+            title: '内测邀请列表',
+            description: '管理公开邀请、密码邀请、指定版本和内测名额。',
+            icon: 'FileIcon'
+          },
+          {
+            name: 'mobile-app-beta-invite-templates',
+            path: '/legal/mobile-apps/beta-invite-templates',
+            title: '内测邀请模版',
+            description: '管理内测邀请移动端和 PC 端页面模版。',
+            icon: 'ViewModuleIcon'
+          }
+        ]
       }
     ]
   },
@@ -194,6 +315,26 @@ export const pageGroups = [
         icon: 'FileIcon'
       }
     ]
+  },
+  {
+    title: '账号中心',
+    icon: 'UserCircleIcon',
+    children: [
+      {
+        name: 'profile',
+        path: '/account/profile',
+        title: '个人中心',
+        description: '查看个人资料、团队成员、服务产品和访问数据。',
+        icon: 'UserCircleIcon'
+      },
+      {
+        name: 'account-settings',
+        path: '/account/settings',
+        title: '账号设置',
+        description: '维护账号基础信息、安全验证和登录保护策略。',
+        icon: 'Setting1Icon'
+      }
+    ]
   }
 ]
 
@@ -214,6 +355,78 @@ pages.projects = {
   title: '项目列表',
   description: '统一查看、搜索和切换当前可访问的项目。',
   icon: 'ViewListIcon'
+}
+
+pages.workbench = {
+  name: 'workbench',
+  path: '/workbench',
+  title: '工作台',
+  description: '选择项目选择、系统管理等不同工作入口。',
+  icon: 'RootListIcon'
+}
+
+pages['system-ip-whitelist-create'] = {
+  name: 'system-ip-whitelist-create',
+  path: '/system/testing/ip-whitelist/new',
+  title: '新建 IP 白名单',
+  description: '填写名称、IP 或 IP 段后加入管理侧内测访问白名单。',
+  icon: 'ViewListIcon'
+}
+
+pages['system-ip-whitelist-edit'] = {
+  name: 'system-ip-whitelist-edit',
+  path: '/system/testing/ip-whitelist/:id/edit',
+  title: '编辑 IP 白名单',
+  description: '维护管理侧内测访问白名单的名称、IP 段和说明。',
+  icon: 'ViewListIcon'
+}
+
+pages['mobile-app-beta-user-create'] = {
+  name: 'mobile-app-beta-user-create',
+  path: '/legal/mobile-apps/beta-users/new',
+  title: '新建内测用户',
+  description: '填写用户、应用、平台和有效期后加入业务侧内测名单。',
+  icon: 'ViewListIcon'
+}
+
+pages['mobile-app-beta-user-edit'] = {
+  name: 'mobile-app-beta-user-edit',
+  path: '/legal/mobile-apps/beta-users/:id/edit',
+  title: '编辑内测用户',
+  description: '维护业务侧内测用户的访问状态、应用平台和有效期。',
+  icon: 'ViewListIcon'
+}
+
+pages['mobile-app-beta-invite-create'] = {
+  name: 'mobile-app-beta-invite-create',
+  path: '/legal/mobile-apps/beta-invites/new',
+  title: '新建内测邀请',
+  description: '配置邀请链接、应用平台、指定版本和内测用户数量。',
+  icon: 'FileIcon'
+}
+
+pages['mobile-app-beta-invite-edit'] = {
+  name: 'mobile-app-beta-invite-edit',
+  path: '/legal/mobile-apps/beta-invites/:id/edit',
+  title: '编辑内测邀请',
+  description: '维护内测邀请的访问方式、版本范围、名额和有效期。',
+  icon: 'FileIcon'
+}
+
+pages['mobile-app-beta-invite-template-create'] = {
+  name: 'mobile-app-beta-invite-template-create',
+  path: '/legal/mobile-apps/beta-invite-templates/new',
+  title: '新建内测邀请模版',
+  description: '基于启动图编辑能力配置邀请页画布、图层和样式。',
+  icon: 'ViewModuleIcon'
+}
+
+pages['mobile-app-beta-invite-template-edit'] = {
+  name: 'mobile-app-beta-invite-template-edit',
+  path: '/legal/mobile-apps/beta-invite-templates/:id/edit',
+  title: '编辑内测邀请模版',
+  description: '维护邀请页模版的基础信息、图层位置、颜色和按钮样式。',
+  icon: 'ViewModuleIcon'
 }
 
 pages['i18n-task-create'] = {

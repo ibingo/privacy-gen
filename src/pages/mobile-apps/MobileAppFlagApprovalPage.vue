@@ -1,96 +1,99 @@
 <template>
-  <div class="document-list-page">
-    <div class="document-list-panel">
-      <div class="document-list-toolbar">
-        <div class="document-list-actions">
-          <span class="document-selection-text">共 {{ filteredApprovals.length }} 条</span>
-        </div>
+  <starter-list-page
+    v-model:keyword="keyword"
+    title="审批管理"
+    search-placeholder="请输入内容搜索"
+    :breadcrumb="['功能特性管理', '审批管理']"
+    :columns="columns"
+    :data="filteredApprovals"
+  >
+    <template #filters>
+      <t-select v-model="statusFilter" class="starter-list-filter-select" placeholder="审批状态">
+        <t-option value="all" label="全部状态" />
+        <t-option v-for="status in statusOptions" :key="status" :value="status" :label="status" />
+      </t-select>
+      <t-select v-model="applicantFilter" class="starter-list-filter-select" placeholder="申请人">
+        <t-option value="all" label="全部申请人" />
+        <t-option v-for="applicant in applicantOptions" :key="applicant" :value="applicant" :label="applicant" />
+      </t-select>
+      <t-select v-model="reviewerFilter" class="starter-list-filter-select" placeholder="审批人">
+        <t-option value="all" label="全部审批人" />
+        <t-option v-for="reviewer in reviewerOptions" :key="reviewer" :value="reviewer" :label="reviewer" />
+      </t-select>
+    </template>
 
-        <label class="document-search">
-          <search-icon />
-          <input v-model="keyword" type="search" placeholder="请输入内容搜索" />
-        </label>
-      </div>
+    <template #title="{ row }">
+      <span class="document-name">
+        {{ row.title }}
+        <small>{{ row.reason }}</small>
+      </span>
+    </template>
 
-      <div class="document-table">
-        <div class="document-table-head document-table-row approval-table-row">
-          <span>标题</span>
-          <span>开关 Key</span>
-          <span>状态</span>
-          <span>申请人</span>
-          <span>审批人</span>
-          <span>提交时间</span>
-          <span>操作</span>
-        </div>
+    <template #status="{ row }">
+      <t-tag :theme="getStatusTheme(row.status)" variant="light">{{ row.status }}</t-tag>
+    </template>
 
-        <div v-for="approval in pageApprovals" :key="approval.id" class="document-table-row approval-table-row">
-          <span class="document-name">
-            {{ approval.title }}
-            <small>{{ approval.reason }}</small>
-          </span>
-          <span>{{ approval.flagKey }}</span>
-          <span>
-            <span class="document-status" :class="approval.status === '已通过' ? 'is-success' : approval.status === '已拒绝' ? 'is-danger' : 'is-warning'">
-              {{ approval.status }}
-            </span>
-          </span>
-          <span>{{ approval.applicant }}</span>
-          <span>{{ approval.reviewer }}</span>
-          <span>{{ approval.submittedAt }}</span>
-          <span class="document-actions-cell">
-            <button type="button" @click="router.push({ name: 'mobile-app-flag-approval-edit', params: { id: approval.id } })">详情</button>
-            <button type="button" @click="router.push({ name: 'mobile-app-flag-approval-edit', params: { id: approval.id } })">编辑</button>
-          </span>
-        </div>
-      </div>
-
-      <div class="icon-pagination">
-        <span>每页 {{ pageSize }} 条，共 {{ filteredApprovals.length }} 条</span>
-        <div class="icon-pagination-actions">
-          <button type="button" :disabled="currentPage === 1" @click="currentPage--">上一页</button>
-          <button
-            v-for="page in totalPages"
-            :key="page"
-            type="button"
-            :class="{ 'is-active': page === currentPage }"
-            @click="currentPage = page"
-          >
-            {{ page }}
-          </button>
-          <button type="button" :disabled="currentPage === totalPages" @click="currentPage++">下一页</button>
-        </div>
-      </div>
-    </div>
-  </div>
+    <template #operation="{ row }">
+      <t-space size="small">
+        <t-button theme="primary" variant="text" @click="goToApproval(row)">详情</t-button>
+        <t-button theme="primary" variant="text" @click="goToApproval(row)">编辑</t-button>
+      </t-space>
+    </template>
+  </starter-list-page>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { SearchIcon } from 'tdesign-icons-vue-next'
+import {
+  Button as TButton,
+  Option as TOption,
+  Select as TSelect,
+  Space as TSpace,
+  Tag as TTag
+} from 'tdesign-vue-next'
+import StarterListPage from '../../components/StarterListPage.vue'
 import { readFlagApprovals } from '../../config/featureFlags'
 
 const router = useRouter()
 const keyword = ref('')
-const currentPage = ref(1)
-const pageSize = 5
+const statusFilter = ref('all')
+const applicantFilter = ref('all')
+const reviewerFilter = ref('all')
 const approvals = ref(readFlagApprovals())
+
+const columns = [
+  { colKey: 'title', title: '标题', minWidth: 280 },
+  { colKey: 'flagKey', title: '开关 Key', width: 190 },
+  { colKey: 'status', title: '状态', width: 110 },
+  { colKey: 'applicant', title: '申请人', width: 140 },
+  { colKey: 'reviewer', title: '审批人', width: 140 },
+  { colKey: 'submittedAt', title: '提交时间', width: 170 },
+  { colKey: 'operation', title: '操作', width: 120, fixed: 'right' }
+]
+
+const statusOptions = computed(() => [...new Set(approvals.value.map((approval) => approval.status).filter(Boolean))])
+const applicantOptions = computed(() => [...new Set(approvals.value.map((approval) => approval.applicant).filter(Boolean))])
+const reviewerOptions = computed(() => [...new Set(approvals.value.map((approval) => approval.reviewer).filter(Boolean))])
 
 const filteredApprovals = computed(() => {
   const q = keyword.value.trim().toLowerCase()
-  if (!q) return approvals.value
   return approvals.value.filter((approval) => {
-    return `${approval.title} ${approval.flagKey} ${approval.applicant} ${approval.reviewer} ${approval.reason}`.toLowerCase().includes(q)
+    const matchKeyword = !q || `${approval.title} ${approval.flagKey} ${approval.applicant} ${approval.reviewer} ${approval.reason}`.toLowerCase().includes(q)
+    const matchStatus = statusFilter.value === 'all' || approval.status === statusFilter.value
+    const matchApplicant = applicantFilter.value === 'all' || approval.applicant === applicantFilter.value
+    const matchReviewer = reviewerFilter.value === 'all' || approval.reviewer === reviewerFilter.value
+    return matchKeyword && matchStatus && matchApplicant && matchReviewer
   })
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredApprovals.value.length / pageSize)))
-const pageApprovals = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredApprovals.value.slice(start, start + pageSize)
-})
+function getStatusTheme (status) {
+  if (status === '已通过') return 'success'
+  if (status === '已拒绝') return 'danger'
+  return 'warning'
+}
 
-watch(filteredApprovals, () => {
-  currentPage.value = 1
-})
+function goToApproval (approval) {
+  router.push({ name: 'mobile-app-flag-approval-edit', params: { id: approval.id } })
+}
 </script>

@@ -35,6 +35,13 @@
 
       <div class="app-launch-editor-layout">
         <div class="app-launch-side-stack">
+          <AppLaunchWidgetPanel
+            :widgets="editorWidgets"
+            @add="addWidgetLayer"
+            @drag-start="handleWidgetDragStart"
+            @drag-end="handleWidgetDragEnd"
+          />
+
           <t-card title="视图" :bordered="false">
             <div class="app-launch-control-stack">
               <div class="app-launch-control-header">
@@ -83,369 +90,93 @@
           </t-card>
         </div>
 
-        <t-card class="app-launch-canvas-card" :bordered="false">
-          <div class="app-launch-canvas-header">
-            <span>{{ activeDevice.label }}</span>
-            <t-tag variant="light">{{ displaySize.width }} x {{ displaySize.height }}</t-tag>
-          </div>
-          <main class="app-launch-canvas-shell">
-            <div class="app-launch-floating-toolbar" :style="floatingToolbarStyle">
-              <button
-                class="app-launch-toolbar-drag"
-                type="button"
-                title="拖动工具栏"
-                @pointerdown="handleToolbarPointerDown"
-              >
-                <drag-move-icon />
-              </button>
-              <t-button variant="outline" size="small" @click="addTextLayer">
-                <template #icon><text-icon /></template>
-                添加文字
-              </t-button>
-              <t-button variant="outline" size="small" @click="openIconImportDialog">
-                <template #icon><layers-icon /></template>
-                导入图标
-              </t-button>
-              <label class="app-launch-upload-button">
-                <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" @change="handleImageUpload" />
-                <span class="t-button t-button--variant-outline t-button--size-small">
-                  <upload-icon />
-                  上传图片
-                </span>
-              </label>
-            </div>
-            <div class="app-launch-phone" :style="phoneStyle">
-              <div
-                class="app-launch-artboard"
-                :class="{ 'is-transparent': !layers.background.visible }"
-                :style="artboardStyle"
-                @click="selectLayer('background')"
-              >
-                <div
-                  v-if="layers.logo.visible"
-                  class="app-launch-logo-box"
-                  :class="{ 'is-active': activeLayer === 'logo', 'is-locked': layers.logo.locked }"
-                  :style="logoBoxStyle"
-                  @click.stop="selectLayer('logo')"
-                  @pointerdown.stop="handleLogoPointerDown"
-                >
-                  <span
-                    v-if="logoSvgColorEnabled"
-                    class="app-launch-svg-mask"
-                    :style="logoSvgMaskStyle"
-                  ></span>
-                  <img v-else-if="settings.logoSrc" :src="settings.logoSrc" :alt="settings.logoFileName || '启动页图片'" />
-                  <layers-icon v-else />
-                </div>
-                <div
-                  v-for="imageLayer in imageLayers"
-                  v-show="imageLayer.visible"
-                  :key="imageLayer.id"
-                  class="app-launch-image-box"
-                  :class="{ 'is-active': activeLayer === imageLayer.id, 'is-locked': imageLayer.locked }"
-                  :style="getImageLayerStyle(imageLayer)"
-                  @click.stop="selectLayer(imageLayer.id)"
-                  @pointerdown.stop="handleImagePointerDown($event, imageLayer)"
-                >
-                  <span
-                    v-if="isSvgImageLayer(imageLayer)"
-                    class="app-launch-svg-mask"
-                    :style="getImageLayerMaskStyle(imageLayer)"
-                  ></span>
-                  <img v-else-if="imageLayer.src" :src="imageLayer.src" :alt="imageLayer.label" />
-                  <image-icon v-else />
-                </div>
-                <div
-                  v-for="iconLayer in iconLayers"
-                  v-show="iconLayer.visible"
-                  :key="iconLayer.id"
-                  class="app-launch-icon-box"
-                  :class="{ 'is-active': activeLayer === iconLayer.id, 'is-locked': iconLayer.locked }"
-                  :style="getIconLayerStyle(iconLayer)"
-                  @click.stop="selectLayer(iconLayer.id)"
-                  @pointerdown.stop="handleIconPointerDown($event, iconLayer)"
-                >
-                  <IconGlyph
-                    :paths="iconLayer.paths"
-                    :stroke-width="2"
-                    :icon-type="iconLayer.iconType"
-                    :color-mode="iconLayer.colorMode"
-                    :primary-color="iconLayer.primaryColor"
-                    :secondary-color="iconLayer.secondaryColor"
-                  />
-                </div>
-                <div
-                  v-for="textLayer in textLayers"
-                  v-show="textLayer.visible"
-                  :key="textLayer.id"
-                  class="app-launch-text-box"
-                  :class="{ 'is-active': activeLayer === textLayer.id, 'is-locked': textLayer.locked }"
-                  :style="getTextLayerStyle(textLayer)"
-                  @click.stop="selectLayer(textLayer.id)"
-                  @pointerdown.stop="handleTextPointerDown($event, textLayer)"
-                >
-                  {{ textLayer.text }}
-                </div>
-              </div>
-            </div>
-          </main>
-        </t-card>
+        <AppLaunchCanvas
+          :active-device="activeDevice"
+          :display-size="displaySize"
+          :phone-style="phoneStyle"
+          :artboard-style="artboardStyle"
+          :layers="layers"
+          :settings="settings"
+          :active-layer="activeLayer"
+          :is-widget-drag-over="isWidgetDragOver"
+          :logo-box-style="logoBoxStyle"
+          :logo-svg-color-enabled="logoSvgColorEnabled"
+          :logo-svg-mask-style="logoSvgMaskStyle"
+          :ordered-image-layers="orderedImageLayers"
+          :ordered-icon-layers="orderedIconLayers"
+          :ordered-text-layers="orderedTextLayers"
+          :get-image-layer-style="getImageLayerStyle"
+          :get-image-layer-mask-style="getImageLayerMaskStyle"
+          :get-icon-layer-style="getIconLayerStyle"
+          :get-text-layer-style="getTextLayerStyle"
+          :is-svg-image-layer="isSvgImageLayer"
+          :can-delete-layer="canDeleteLayer"
+          :is-text-editing="isTextEditing"
+          @select="selectLayer"
+          @canvas-drag-over="handleCanvasDragOver"
+          @canvas-drag-leave="handleCanvasDragLeave"
+          @canvas-drop="handleCanvasDrop"
+          @logo-pointerdown="handleLogoPointerDown"
+          @image-pointerdown="handleImagePointerDown"
+          @icon-pointerdown="handleIconPointerDown"
+          @text-pointerdown="handleTextPointerDown"
+          @text-content-pointerdown="handleTextContentPointerDown"
+          @start-text-edit="startInlineTextEdit"
+          @finish-text-edit="finishInlineTextEdit"
+          @open-image-upload="openImageUpload"
+          @delete-layer="deleteLayer"
+        >
+          <AppLaunchFloatingProperties
+            :floating-properties-style="floatingPropertiesStyle"
+            :active-layer-meta="activeLayerMeta"
+            :active-layer="activeLayer"
+            :layers="layers"
+            :settings="settings"
+            :logo-controls-disabled="logoControlsDisabled"
+            :logo-scale-text="logoScaleText"
+            :logo-color-control-visible="logoColorControlVisible"
+            :active-image-layer="activeImageLayer"
+            :active-image-controls-disabled="activeImageControlsDisabled"
+            :active-image-color-control-visible="activeImageColorControlVisible"
+            :active-icon-layer="activeIconLayer"
+            :active-icon-controls-disabled="activeIconControlsDisabled"
+            :active-text-layer="activeTextLayer"
+            :active-text-controls-disabled="activeTextControlsDisabled"
+            @pointerdown="handlePropertiesPointerDown"
+          />
+        </AppLaunchCanvas>
 
         <div class="app-launch-side-stack">
-          <t-card title="图层" :bordered="false">
-            <div class="app-launch-layer-list">
-              <button
-                v-for="layer in allLayers"
-                :key="layer.value"
-                class="app-launch-layer-row"
-                :class="{ 'is-active': activeLayer === layer.value, 'is-hidden': !getLayerState(layer.value).visible }"
-                type="button"
-                @click="selectLayer(layer.value)"
-              >
-                <component :is="layer.icon" />
-                <span>
-                  <strong>{{ layer.label }}</strong>
-                  <small>{{ layer.description }}</small>
-                </span>
-                <span class="app-launch-layer-actions" @click.stop>
-                  <t-button
-                    variant="text"
-                    shape="square"
-                    size="small"
-                    :title="getLayerState(layer.value).visible ? '隐藏图层' : '显示图层'"
-                    @click="toggleLayerVisible(layer.value)"
-                  >
-                    <component :is="getLayerState(layer.value).visible ? BrowseIcon : BrowseOffIcon" />
-                  </t-button>
-                  <t-button
-                    variant="text"
-                    shape="square"
-                    size="small"
-                    :disabled="layer.value === 'background'"
-                    :title="getLayerState(layer.value).locked ? '解锁图层' : '锁定图层'"
-                    @click="toggleLayerLocked(layer.value)"
-                  >
-                    <component :is="getLayerState(layer.value).locked ? LockOnIcon : LockOffIcon" />
-                  </t-button>
-                </span>
-              </button>
-            </div>
-          </t-card>
-
-          <t-card :title="activeLayerMeta.propertyTitle" :bordered="false">
-            <div v-if="activeLayer === 'logo'" class="app-launch-control-stack">
-              <div class="app-launch-layer-state">
-                <span>图片图层</span>
-                <t-tag v-if="layers.logo.locked" theme="warning" variant="light">已锁定</t-tag>
-                <t-tag v-else-if="!layers.logo.visible" theme="default" variant="light">已隐藏</t-tag>
-                <t-tag v-else theme="primary" variant="light">可编辑</t-tag>
-              </div>
-              <div class="app-launch-upload-hint">
-                <span>{{ settings.logoFileName || '未上传图片' }}</span>
-                <small>使用浮动工具栏上传图片到当前图层</small>
-              </div>
-              <div class="app-launch-control-header">
-                <span>横坐标</span>
-                <strong>{{ settings.logoX }}%</strong>
-              </div>
-              <t-slider v-model="settings.logoX" :min="0" :max="100" :disabled="logoControlsDisabled" />
-
-              <div class="app-launch-control-header">
-                <span>纵坐标</span>
-                <strong>{{ settings.logoY }}%</strong>
-              </div>
-              <t-slider v-model="settings.logoY" :min="0" :max="100" :disabled="logoControlsDisabled" />
-
-              <div class="app-launch-control-header">
-                <span>缩放</span>
-                <strong>{{ logoScaleText }}</strong>
-              </div>
-              <t-slider v-model="settings.logoScale" :min="18" :max="76" :disabled="logoControlsDisabled" />
-            </div>
-            <div v-else-if="activeImageLayer" class="app-launch-control-stack">
-              <div class="app-launch-layer-state">
-                <span>{{ activeImageLayer.label }}</span>
-                <t-tag v-if="activeImageLayer.locked" theme="warning" variant="light">已锁定</t-tag>
-                <t-tag v-else-if="!activeImageLayer.visible" theme="default" variant="light">已隐藏</t-tag>
-                <t-tag v-else theme="primary" variant="light">可编辑</t-tag>
-              </div>
-              <div class="app-launch-upload-hint">
-                <span>{{ activeImageLayer.fileName || '未上传图片' }}</span>
-                <small>使用浮动工具栏上传图片到当前图层</small>
-              </div>
-              <div class="app-launch-control-header">
-                <span>横坐标</span>
-                <strong>{{ Math.round(activeImageLayer.x) }}%</strong>
-              </div>
-              <t-slider v-model="activeImageLayer.x" :min="0" :max="100" :disabled="activeImageControlsDisabled" />
-
-              <div class="app-launch-control-header">
-                <span>纵坐标</span>
-                <strong>{{ Math.round(activeImageLayer.y) }}%</strong>
-              </div>
-              <t-slider v-model="activeImageLayer.y" :min="0" :max="100" :disabled="activeImageControlsDisabled" />
-
-              <div class="app-launch-control-header">
-                <span>缩放</span>
-                <strong>{{ activeImageLayer.scale }}%</strong>
-              </div>
-              <t-slider
-                v-model="activeImageLayer.scale"
-                :min="12"
-                :max="96"
-                :disabled="activeImageControlsDisabled"
-              />
-            </div>
-            <div v-else-if="activeIconLayer" class="app-launch-control-stack">
-              <div class="app-launch-layer-state">
-                <span>{{ activeIconLayer.label }}</span>
-                <t-tag v-if="activeIconLayer.locked" theme="warning" variant="light">已锁定</t-tag>
-                <t-tag v-else-if="!activeIconLayer.visible" theme="default" variant="light">已隐藏</t-tag>
-                <t-tag v-else theme="primary" variant="light">可编辑</t-tag>
-              </div>
-              <div class="app-launch-upload-hint">
-                <span>{{ activeIconLayer.sourceName || '图标资源' }}</span>
-                <small>{{ activeIconLayer.iconType === 'fill' ? '填充图标' : '描边图标' }}，颜色独立于图片和背景</small>
-              </div>
-              <div class="app-launch-control-header">
-                <span>横坐标</span>
-                <strong>{{ Math.round(activeIconLayer.x) }}%</strong>
-              </div>
-              <t-slider v-model="activeIconLayer.x" :min="0" :max="100" :disabled="activeIconControlsDisabled" />
-
-              <div class="app-launch-control-header">
-                <span>纵坐标</span>
-                <strong>{{ Math.round(activeIconLayer.y) }}%</strong>
-              </div>
-              <t-slider v-model="activeIconLayer.y" :min="0" :max="100" :disabled="activeIconControlsDisabled" />
-
-              <div class="app-launch-control-header">
-                <span>大小</span>
-                <strong>{{ activeIconLayer.scale }}%</strong>
-              </div>
-              <t-slider
-                v-model="activeIconLayer.scale"
-                :min="8"
-                :max="72"
-                :disabled="activeIconControlsDisabled"
-              />
-
-              <div class="app-launch-control-header">
-                <span>配色模式</span>
-              </div>
-              <t-radio-group v-model="activeIconLayer.colorMode" variant="default-filled" :disabled="activeIconControlsDisabled">
-                <t-radio-button value="single">单色</t-radio-button>
-                <t-radio-button value="dual">双色</t-radio-button>
-              </t-radio-group>
-            </div>
-            <div v-else-if="activeTextLayer" class="app-launch-control-stack">
-              <div class="app-launch-layer-state">
-                <span>{{ activeTextLayer.label }}</span>
-                <t-tag v-if="activeTextLayer.locked" theme="warning" variant="light">已锁定</t-tag>
-                <t-tag v-else-if="!activeTextLayer.visible" theme="default" variant="light">已隐藏</t-tag>
-                <t-tag v-else theme="primary" variant="light">可编辑</t-tag>
-              </div>
-              <label class="app-launch-text-field">
-                <span>文字内容</span>
-                <t-input
-                  v-model="activeTextLayer.text"
-                  clearable
-                  :disabled="activeTextControlsDisabled"
-                />
-              </label>
-              <div class="app-launch-control-header">
-                <span>横坐标</span>
-                <strong>{{ Math.round(activeTextLayer.x) }}%</strong>
-              </div>
-              <t-slider v-model="activeTextLayer.x" :min="0" :max="100" :disabled="activeTextControlsDisabled" />
-
-              <div class="app-launch-control-header">
-                <span>纵坐标</span>
-                <strong>{{ Math.round(activeTextLayer.y) }}%</strong>
-              </div>
-              <t-slider v-model="activeTextLayer.y" :min="0" :max="100" :disabled="activeTextControlsDisabled" />
-
-              <div class="app-launch-control-header">
-                <span>字号</span>
-                <strong>{{ activeTextLayer.fontSize }}px</strong>
-              </div>
-              <t-slider
-                v-model="activeTextLayer.fontSize"
-                :min="12"
-                :max="96"
-                :disabled="activeTextControlsDisabled"
-              />
-            </div>
-            <div v-else class="app-launch-background-panel">
-              <p>当前选中背景图层，右侧颜色面板可调整启动页背景。</p>
-            </div>
-          </t-card>
-
-          <t-card title="颜色" :bordered="false">
-            <div v-if="activeLayer === 'background'" class="app-launch-color-grid">
-              <label class="app-launch-color-item">
-                <span>背景</span>
-                <t-color-picker
-                  v-model="settings.backgroundColor"
-                  format="HEX"
-                  :disabled="!layers.background.visible"
-                />
-              </label>
-            </div>
-            <div v-else-if="activeLayer === 'logo' && logoColorControlVisible" class="app-launch-color-grid">
-              <label class="app-launch-color-item">
-                <span>图形</span>
-                <t-color-picker
-                  v-model="settings.logoColor"
-                  format="HEX"
-                  :disabled="logoControlsDisabled"
-                />
-              </label>
-            </div>
-            <div v-else-if="activeIconLayer" class="app-launch-color-grid">
-              <label class="app-launch-color-item">
-                <span>主色</span>
-                <t-color-picker
-                  v-model="activeIconLayer.primaryColor"
-                  format="HEX"
-                  :disabled="activeIconControlsDisabled"
-                />
-              </label>
-              <label v-if="activeIconLayer.colorMode === 'dual'" class="app-launch-color-item">
-                <span>辅色</span>
-                <t-color-picker
-                  v-model="activeIconLayer.secondaryColor"
-                  format="HEX"
-                  :disabled="activeIconControlsDisabled"
-                />
-              </label>
-            </div>
-            <div v-else-if="activeImageLayer && activeImageColorControlVisible" class="app-launch-color-grid">
-              <label class="app-launch-color-item">
-                <span>SVG 着色</span>
-                <t-color-picker
-                  v-model="activeImageLayer.tintColor"
-                  format="HEX"
-                  :disabled="activeImageControlsDisabled"
-                />
-              </label>
-            </div>
-            <div v-else-if="activeTextLayer" class="app-launch-color-grid">
-              <label class="app-launch-color-item">
-                <span>文字</span>
-                <t-color-picker
-                  v-model="activeTextLayer.color"
-                  format="HEX"
-                  :disabled="activeTextControlsDisabled"
-                />
-              </label>
-            </div>
-            <div v-else class="app-launch-color-empty">
-              当前图层没有可调整的颜色项
-            </div>
-          </t-card>
+          <AppLaunchLayerList
+            :layers="allLayers"
+            :active-layer="activeLayer"
+            :dragged-layer-id="draggedLayerId"
+            :drag-over-layer-id="dragOverLayerId"
+            :get-layer-state="getLayerState"
+            :get-layer-z-index="getLayerZIndex"
+            :can-change-layer-order="canChangeLayerOrder"
+            :can-delete-layer="canDeleteLayer"
+            @select="selectLayer"
+            @sort-drag-start="handleLayerSortDragStart"
+            @sort-drag-over="handleLayerSortDragOver"
+            @sort-drag-leave="handleLayerSortDragLeave"
+            @sort-drop="handleLayerSortDrop"
+            @sort-drag-end="handleLayerSortDragEnd"
+            @move-level="moveLayerLevel"
+            @update-z-index="updateLayerZIndex"
+            @toggle-visible="toggleLayerVisible"
+            @toggle-locked="toggleLayerLocked"
+            @delete="deleteLayer"
+          />
         </div>
       </div>
+      <input
+        ref="imageUploadInput"
+        class="app-launch-hidden-input"
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+        @change="handleActiveImageUpload"
+      />
 
       <t-dialog
         v-model:visible="iconImportDialogVisible"
@@ -524,23 +255,16 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeftIcon,
-  BrowseIcon,
-  BrowseOffIcon,
-  DragMoveIcon,
   FillColorIcon,
   ImageIcon,
   LayersIcon,
-  LockOffIcon,
-  LockOnIcon,
   PlayIcon,
   SearchIcon,
-  TextIcon,
-  UploadIcon
+  TextIcon
 } from 'tdesign-icons-vue-next'
 import {
   Button as TButton,
   Card as TCard,
-  ColorPicker as TColorPicker,
   Dialog as TDialog,
   Empty as TEmpty,
   Input as TInput,
@@ -561,6 +285,10 @@ import {
   updateAppLaunch
 } from '../../config/appLaunches'
 import IconGlyph from '../../components/IconGlyph.vue'
+import AppLaunchCanvas from '../../components/app-launch-editor/AppLaunchCanvas.vue'
+import AppLaunchFloatingProperties from '../../components/app-launch-editor/AppLaunchFloatingProperties.vue'
+import AppLaunchLayerList from '../../components/app-launch-editor/AppLaunchLayerList.vue'
+import AppLaunchWidgetPanel from '../../components/app-launch-editor/AppLaunchWidgetPanel.vue'
 import { findIconProject, getActiveIconProjectId } from '../../config/iconProjects'
 import { readIconCategories, readIconLibrary } from '../../utils/iconLibrary'
 
@@ -575,6 +303,13 @@ const activeLayer = ref('logo')
 const textLayers = ref([])
 const imageLayers = ref([])
 const iconLayers = ref([])
+const editingTextLayerId = ref('')
+const draggedWidgetType = ref('')
+const isWidgetDragOver = ref(false)
+const draggedLayerId = ref('')
+const dragOverLayerId = ref('')
+const imageUploadInput = ref(null)
+const activeUploadImageLayerId = ref('')
 const iconImportDialogVisible = ref(false)
 const iconImportKeyword = ref('')
 const iconImportType = ref('all')
@@ -582,10 +317,7 @@ const iconImportCategory = ref('all')
 const iconImportProjectId = ref(getActiveIconProjectId())
 const iconImportItems = ref([])
 const iconImportCategories = ref([])
-const toolbarPosition = reactive({
-  x: 50,
-  y: 14
-})
+const propertiesPosition = reactive({ x: null, y: 118 })
 const settings = reactive({
   backgroundColor: '#ffffff',
   logoColor: '#f52f3e',
@@ -604,7 +336,8 @@ const layers = reactive({
   },
   logo: {
     visible: true,
-    locked: false
+    locked: false,
+    zIndex: 30
   }
 })
 const layerList = [
@@ -636,7 +369,8 @@ const defaultTextLayer = (index = 1) => ({
   fontSize: 28,
   color: '#111827',
   visible: true,
-  locked: false
+  locked: false,
+  zIndex: 30
 })
 
 const defaultImageLayer = (index = 1) => ({
@@ -653,7 +387,8 @@ const defaultImageLayer = (index = 1) => ({
   y: 50,
   scale: 42,
   visible: true,
-  locked: false
+  locked: false,
+  zIndex: 40
 })
 
 const defaultIconLayer = (icon, index = 1) => ({
@@ -673,8 +408,30 @@ const defaultIconLayer = (icon, index = 1) => ({
   y: 50,
   scale: 22,
   visible: true,
-  locked: false
+  locked: false,
+  zIndex: 40
 })
+
+const editorWidgets = [
+  {
+    type: 'text',
+    label: '文字',
+    description: '添加启动页文案',
+    icon: TextIcon
+  },
+  {
+    type: 'image',
+    label: '图片',
+    description: '上传本地图片素材',
+    icon: ImageIcon
+  },
+  {
+    type: 'icon',
+    label: '图标',
+    description: '从图标资源导入',
+    icon: LayersIcon
+  }
+]
 
 const applyLaunchSettings = (value) => {
   if (!value) return
@@ -733,21 +490,21 @@ const logoScaleText = computed(() => `${(settings.logoScale / 100).toFixed(2)}�
 const logoControlsDisabled = computed(() => layers.logo.locked || !layers.logo.visible)
 const activeIconProject = computed(() => findIconProject(iconImportProjectId.value))
 const allLayers = computed(() => [
-  ...iconLayers.value.map((layer) => ({
+  ...[...iconLayers.value].sort((a, b) => getLayerZIndex(b.id) - getLayerZIndex(a.id)).map((layer) => ({
     value: layer.id,
     label: layer.label,
     propertyTitle: '图标属性',
     description: layer.sourceName || '图标资源',
     icon: LayersIcon
   })),
-  ...imageLayers.value.map((layer) => ({
+  ...[...imageLayers.value].sort((a, b) => getLayerZIndex(b.id) - getLayerZIndex(a.id)).map((layer) => ({
     value: layer.id,
     label: layer.label,
     propertyTitle: '图片属性',
     description: layer.fileName || '图片图层',
     icon: ImageIcon
   })),
-  ...textLayers.value.map((layer) => ({
+  ...[...textLayers.value].sort((a, b) => getLayerZIndex(b.id) - getLayerZIndex(a.id)).map((layer) => ({
     value: layer.id,
     label: layer.label,
     propertyTitle: '文字属性',
@@ -759,6 +516,9 @@ const allLayers = computed(() => [
 const activeLayerMeta = computed(() => {
   return allLayers.value.find((layer) => layer.value === activeLayer.value) || layerList[0]
 })
+const orderedImageLayers = computed(() => [...imageLayers.value].sort((a, b) => getLayerZIndex(a.id) - getLayerZIndex(b.id)))
+const orderedIconLayers = computed(() => [...iconLayers.value].sort((a, b) => getLayerZIndex(a.id) - getLayerZIndex(b.id)))
+const orderedTextLayers = computed(() => [...textLayers.value].sort((a, b) => getLayerZIndex(a.id) - getLayerZIndex(b.id)))
 const activeTextLayer = computed(() => {
   return textLayers.value.find((layer) => layer.id === activeLayer.value) || null
 })
@@ -812,16 +572,29 @@ const phoneStyle = computed(() => {
 const artboardStyle = computed(() => ({
   background: layers.background.visible ? settings.backgroundColor : 'transparent'
 }))
-const floatingToolbarStyle = computed(() => ({
-  left: `${toolbarPosition.x}%`,
-  top: `${toolbarPosition.y}px`
-}))
+const floatingPropertiesStyle = computed(() => {
+  if (propertiesPosition.x === null) {
+    return {
+      top: `${propertiesPosition.y}px`,
+      left: '50%',
+      right: 'auto',
+      transform: 'translateX(-50%)'
+    }
+  }
+  return {
+    left: `${propertiesPosition.x}px`,
+    top: `${propertiesPosition.y}px`,
+    right: 'auto',
+    transform: 'none'
+  }
+})
 
 const logoBoxStyle = computed(() => ({
   left: `${settings.logoX}%`,
   top: `${settings.logoY}%`,
   width: `${settings.logoScale}%`,
   color: settings.logoColor,
+  zIndex: getLayerZIndex('logo'),
   transform: 'translate(-50%, -50%)'
 }))
 const logoSvgMaskStyle = computed(() => ({
@@ -835,6 +608,7 @@ const getTextLayerStyle = (layer) => ({
   top: `${layer.y}%`,
   color: layer.color,
   fontSize: `${layer.fontSize}px`,
+  zIndex: getLayerZIndex(layer.id),
   transform: 'translate(-50%, -50%)'
 })
 
@@ -842,6 +616,7 @@ const getImageLayerStyle = (layer) => ({
   left: `${layer.x}%`,
   top: `${layer.y}%`,
   width: `${layer.scale}%`,
+  zIndex: getLayerZIndex(layer.id),
   transform: 'translate(-50%, -50%)'
 })
 
@@ -849,6 +624,7 @@ const getIconLayerStyle = (layer) => ({
   left: `${layer.x}%`,
   top: `${layer.y}%`,
   width: `${layer.scale}%`,
+  zIndex: getLayerZIndex(layer.id),
   transform: 'translate(-50%, -50%)'
 })
 
@@ -870,6 +646,19 @@ const getLayerState = (layer) => {
     || { visible: false, locked: true }
 }
 
+const getCustomLayer = (id) => {
+  return imageLayers.value.find((item) => item.id === id)
+    || iconLayers.value.find((item) => item.id === id)
+    || textLayers.value.find((item) => item.id === id)
+    || null
+}
+
+const getLayerZIndex = (id) => {
+  if (id === 'background') return 0
+  if (id === 'logo') return Number(layers.logo.zIndex) || 30
+  return Number(getCustomLayer(id)?.zIndex) || 1
+}
+
 const selectLayer = (layer) => {
   activeLayer.value = layer
 }
@@ -888,10 +677,148 @@ const toggleLayerLocked = (layer) => {
   state.locked = !state.locked
 }
 
+const canDeleteLayer = (layer) => {
+  return !['background', 'logo'].includes(layer) && activeLayer.value === layer && !getLayerState(layer).locked
+}
+
+const canChangeLayerOrder = (layer) => layer !== 'background'
+
+const setLayerZIndex = (id, zIndex) => {
+  if (id === 'logo') {
+    layers.logo.zIndex = zIndex
+    return
+  }
+  const layer = getCustomLayer(id)
+  if (layer) layer.zIndex = zIndex
+}
+
+const updateLayerZIndex = (id, value) => {
+  if (!canChangeLayerOrder(id)) return
+  const nextZIndex = Math.min(999, Math.max(1, Number(value) || 1))
+  const current = getLayerZIndex(id)
+  if (current !== nextZIndex) {
+    getSortableLayerIds().forEach((layerId) => {
+      if (layerId !== id && getLayerZIndex(layerId) >= nextZIndex) {
+        setLayerZIndex(layerId, getLayerZIndex(layerId) + 1)
+      }
+    })
+  }
+  setLayerZIndex(id, nextZIndex)
+  activeLayer.value = id
+}
+
+const getSortableLayerIds = () => [
+  'logo',
+  ...imageLayers.value.map((layer) => layer.id),
+  ...iconLayers.value.map((layer) => layer.id),
+  ...textLayers.value.map((layer) => layer.id)
+]
+
+const normalizeLayerOrder = (orderedIds) => {
+  orderedIds.forEach((id, index) => {
+    setLayerZIndex(id, orderedIds.length - index)
+  })
+}
+
+const moveLayerLevel = (id, direction) => {
+  if (!canChangeLayerOrder(id)) return
+  const sorted = getSortableLayerIds().sort((a, b) => getLayerZIndex(b) - getLayerZIndex(a))
+  const index = sorted.indexOf(id)
+  const targetIndex = direction === 'up' ? index - 1 : index + 1
+  if (index < 0 || targetIndex < 0 || targetIndex >= sorted.length) return
+  const targetId = sorted[targetIndex]
+  const currentZIndex = getLayerZIndex(id)
+  setLayerZIndex(id, getLayerZIndex(targetId))
+  setLayerZIndex(targetId, currentZIndex)
+  activeLayer.value = id
+}
+
+const handleLayerSortDragStart = (event, id) => {
+  if (!canChangeLayerOrder(id)) return
+  draggedLayerId.value = id
+  activeLayer.value = id
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', id)
+}
+
+const handleLayerSortDragOver = (event, id) => {
+  if (!draggedLayerId.value || draggedLayerId.value === id || !canChangeLayerOrder(id)) return
+  dragOverLayerId.value = id
+  event.dataTransfer.dropEffect = 'move'
+}
+
+const handleLayerSortDragLeave = (id) => {
+  if (dragOverLayerId.value === id) dragOverLayerId.value = ''
+}
+
+const handleLayerSortDrop = (event, targetId) => {
+  const sourceId = event.dataTransfer.getData('text/plain') || draggedLayerId.value
+  if (!sourceId || sourceId === targetId || !canChangeLayerOrder(sourceId) || !canChangeLayerOrder(targetId)) {
+    handleLayerSortDragEnd()
+    return
+  }
+  const sorted = getSortableLayerIds().sort((a, b) => getLayerZIndex(b) - getLayerZIndex(a))
+  const sourceIndex = sorted.indexOf(sourceId)
+  const targetIndex = sorted.indexOf(targetId)
+  if (sourceIndex < 0 || targetIndex < 0) {
+    handleLayerSortDragEnd()
+    return
+  }
+  const [sourceLayer] = sorted.splice(sourceIndex, 1)
+  sorted.splice(targetIndex, 0, sourceLayer)
+  normalizeLayerOrder(sorted)
+  activeLayer.value = sourceId
+  handleLayerSortDragEnd()
+}
+
+const handleLayerSortDragEnd = () => {
+  draggedLayerId.value = ''
+  dragOverLayerId.value = ''
+}
+
+const deleteLayer = (id) => {
+  if (!canDeleteLayer(id)) return
+  imageLayers.value = imageLayers.value.filter((layer) => layer.id !== id)
+  iconLayers.value = iconLayers.value.filter((layer) => layer.id !== id)
+  textLayers.value = textLayers.value.filter((layer) => layer.id !== id)
+  activeLayer.value = allLayers.value.find((layer) => layer.value !== id)?.value || 'logo'
+}
+
 const addTextLayer = () => {
   const layer = defaultTextLayer(textLayers.value.length + 1)
+  layer.zIndex = Math.max(1, ...getSortableLayerIds().map((id) => getLayerZIndex(id))) + 1
   textLayers.value = [layer, ...textLayers.value]
   activeLayer.value = layer.id
+}
+
+const addImageLayer = (position = {}) => {
+  const layer = defaultImageLayer(imageLayers.value.length + 1)
+  layer.x = position.x ?? layer.x
+  layer.y = position.y ?? layer.y
+  layer.zIndex = Math.max(1, ...getSortableLayerIds().map((id) => getLayerZIndex(id))) + 1
+  imageLayers.value = [layer, ...imageLayers.value]
+  activeLayer.value = layer.id
+  activeUploadImageLayerId.value = layer.id
+  imageUploadInput.value?.click()
+}
+
+const addWidgetLayer = (type, position = {}) => {
+  if (type === 'text') {
+    const layer = defaultTextLayer(textLayers.value.length + 1)
+    layer.x = position.x ?? layer.x
+    layer.y = position.y ?? layer.y
+    layer.zIndex = Math.max(1, ...getSortableLayerIds().map((id) => getLayerZIndex(id))) + 1
+    textLayers.value = [layer, ...textLayers.value]
+    activeLayer.value = layer.id
+    return
+  }
+  if (type === 'image') {
+    addImageLayer(position)
+    return
+  }
+  if (type === 'icon') {
+    openIconImportDialog()
+  }
 }
 
 const refreshIconImportResources = () => {
@@ -908,31 +835,91 @@ const openIconImportDialog = () => {
 
 const importIconLayer = (icon) => {
   const layer = defaultIconLayer(icon, iconLayers.value.length + 1)
+  layer.zIndex = Math.max(1, ...getSortableLayerIds().map((id) => getLayerZIndex(id))) + 1
   iconLayers.value = [layer, ...iconLayers.value]
   activeLayer.value = layer.id
   iconImportDialogVisible.value = false
   MessagePlugin.success('已创建图标图层')
 }
 
-const handleImageUpload = (event) => {
-  const file = event.target.files?.[0]
-  event.target.value = ''
-  if (!file) return
-
-  const layer = defaultImageLayer(imageLayers.value.length + 1)
-
+const applyImageFileToLayer = (file, layer) => {
+  if (!file || !layer) return
+  if (!file.type.startsWith('image/') && !file.name.toLowerCase().endsWith('.svg')) {
+    MessagePlugin.warning('请选择图片文件')
+    return
+  }
   const reader = new FileReader()
   reader.onload = () => {
     layer.src = String(reader.result || '')
     layer.fileName = file.name
     layer.fileType = file.type || (file.name.toLowerCase().endsWith('.svg') ? 'image/svg+xml' : '')
     layer.description = file.name
-    layer.label = `图片 ${imageLayers.value.length + 1}`
-    imageLayers.value = [layer, ...imageLayers.value]
-    activeLayer.value = layer.id
-    MessagePlugin.success('已创建图片图层')
+    MessagePlugin.success('图片已更新')
   }
   reader.readAsDataURL(file)
+}
+
+const handleActiveImageUpload = (event) => {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+  const layer = getCustomLayer(activeUploadImageLayerId.value) || activeImageLayer.value
+  applyImageFileToLayer(file, layer)
+}
+
+const handleImageUpload = (event) => {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+  const layer = defaultImageLayer(imageLayers.value.length + 1)
+  layer.zIndex = Math.max(1, ...getSortableLayerIds().map((id) => getLayerZIndex(id))) + 1
+  applyImageFileToLayer(file, layer)
+  imageLayers.value = [layer, ...imageLayers.value]
+  activeLayer.value = layer.id
+}
+
+const openImageUpload = (layer) => {
+  if (!layer || layer.locked || !layer.visible) return
+  activeLayer.value = layer.id
+  activeUploadImageLayerId.value = layer.id
+  if (imageUploadInput.value) {
+    imageUploadInput.value.value = ''
+    imageUploadInput.value.click()
+  }
+}
+
+const handleWidgetDragStart = (event, type) => {
+  draggedWidgetType.value = type
+  event.dataTransfer.effectAllowed = 'copy'
+  event.dataTransfer.setData('text/plain', type)
+}
+
+const handleWidgetDragEnd = () => {
+  draggedWidgetType.value = ''
+  isWidgetDragOver.value = false
+}
+
+const handleCanvasDragOver = (event) => {
+  if (!draggedWidgetType.value && !Array.from(event.dataTransfer.types).includes('text/plain')) return
+  isWidgetDragOver.value = true
+  event.dataTransfer.dropEffect = 'copy'
+}
+
+const handleCanvasDragLeave = (event) => {
+  if (event.currentTarget.contains(event.relatedTarget)) return
+  isWidgetDragOver.value = false
+}
+
+const handleCanvasDrop = (event) => {
+  const type = event.dataTransfer.getData('text/plain') || draggedWidgetType.value
+  draggedWidgetType.value = ''
+  isWidgetDragOver.value = false
+  if (!type) return
+  const rect = event.currentTarget.getBoundingClientRect()
+  addWidgetLayer(type, {
+    x: Math.min(100, Math.max(0, Math.round(((event.clientX - rect.left) / rect.width) * 100))),
+    y: Math.min(100, Math.max(0, Math.round(((event.clientY - rect.top) / rect.height) * 100)))
+  })
 }
 
 const handleMovablePointerDown = (event, layer) => {
@@ -984,7 +971,42 @@ const handleLogoPointerDown = (event) => {
 }
 
 const handleTextPointerDown = (event, layer) => {
+  if (isTextEditing(layer)) return
   handleMovablePointerDown(event, layer)
+}
+
+const isTextEditing = (layer) => {
+  return editingTextLayerId.value === layer.id && !layer.locked && layer.visible
+}
+
+const startInlineTextEdit = (event, layer) => {
+  if (layer.locked || !layer.visible) return
+  selectLayer(layer.id)
+  editingTextLayerId.value = layer.id
+  requestAnimationFrame(() => {
+    const target = event.currentTarget.querySelector('.app-launch-text-content')
+    target?.focus()
+    const selection = window.getSelection()
+    const range = document.createRange()
+    if (target && selection) {
+      range.selectNodeContents(target)
+      range.collapse(false)
+      selection.removeAllRanges()
+      selection.addRange(range)
+    }
+  })
+}
+
+const finishInlineTextEdit = (event, layer) => {
+  if (layer && event?.currentTarget) {
+    layer.text = event.currentTarget.textContent || ''
+  }
+  editingTextLayerId.value = ''
+}
+
+const handleTextContentPointerDown = (event, layer) => {
+  if (isTextEditing(layer)) return
+  handleTextPointerDown(event, layer)
 }
 
 const handleImagePointerDown = (event, layer) => {
@@ -995,27 +1017,21 @@ const handleIconPointerDown = (event, layer) => {
   handleMovablePointerDown(event, layer)
 }
 
-const handleToolbarPointerDown = (event) => {
+const handlePropertiesPointerDown = (event) => {
   if (event.button !== 0) return
-
-  const shell = event.currentTarget.closest('.app-launch-canvas-shell')
-  const toolbar = event.currentTarget.closest('.app-launch-floating-toolbar')
-  if (!shell || !toolbar) return
-
-  const shellRect = shell.getBoundingClientRect()
-  const toolbarRect = toolbar.getBoundingClientRect()
-  const offsetX = event.clientX - toolbarRect.left
-  const offsetY = event.clientY - toolbarRect.top
+  const panel = event.currentTarget.closest('.app-launch-floating-properties')
+  if (!panel) return
+  const panelRect = panel.getBoundingClientRect()
+  const offsetX = event.clientX - panelRect.left
+  const offsetY = event.clientY - panelRect.top
+  propertiesPosition.x = Math.round(panelRect.left)
+  propertiesPosition.y = Math.round(panelRect.top)
 
   const move = (moveEvent) => {
-    const minLeft = 8
-    const maxLeft = Math.max(minLeft, shellRect.width - toolbarRect.width - 8)
-    const minTop = 8
-    const maxTop = Math.max(minTop, shellRect.height - toolbarRect.height - 8)
-    const nextLeft = Math.min(maxLeft, Math.max(minLeft, moveEvent.clientX - shellRect.left - offsetX))
-    const nextTop = Math.min(maxTop, Math.max(minTop, moveEvent.clientY - shellRect.top - offsetY))
-    toolbarPosition.x = (nextLeft / shellRect.width) * 100
-    toolbarPosition.y = Math.round(nextTop)
+    const maxLeft = Math.max(8, window.innerWidth - panelRect.width - 8)
+    const maxTop = Math.max(8, window.innerHeight - panelRect.height - 8)
+    propertiesPosition.x = Math.round(Math.min(maxLeft, Math.max(8, moveEvent.clientX - offsetX)))
+    propertiesPosition.y = Math.round(Math.min(maxTop, Math.max(8, moveEvent.clientY - offsetY)))
   }
 
   const stop = () => {

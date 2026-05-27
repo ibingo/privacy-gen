@@ -1,78 +1,66 @@
 <template>
-  <div class="document-list-page">
-    <div class="document-list-panel">
-      <div class="document-list-toolbar">
-        <div class="document-list-actions">
-          <button class="document-primary-button" type="button" @click="createProject">
-            新建图标项目
-          </button>
-          <span class="document-selection-text">已选 2 项</span>
-        </div>
+  <starter-list-page
+    v-model:keyword="keyword"
+    title="图标项目列表"
+    primary-action="新建图标项目"
+    search-placeholder="请输入内容搜索"
+    :breadcrumb="['图标资源管理', '图标项目列表']"
+    :columns="columns"
+    :data="filteredRows"
+    :selected-row-keys="selectedRowKeys"
+    @primary="createProject"
+    @select-change="handleSelectChange"
+  >
+    <template #actions>
+      <span class="starter-list-summary">已选 {{ selectedRowKeys.length }} 项</span>
+    </template>
 
-        <label class="document-search">
-          <search-icon />
-          <input v-model="keyword" type="search" placeholder="请输入内容搜索" />
-        </label>
-      </div>
+    <template #filters>
+      <t-select v-model="statusFilter" class="starter-list-filter-select" placeholder="项目状态">
+        <t-option value="all" label="全部状态" />
+        <t-option v-for="status in statusOptions" :key="status" :value="status" :label="status" />
+      </t-select>
+      <t-select v-model="environmentFilter" class="starter-list-filter-select" placeholder="隔离环境">
+        <t-option value="all" label="全部环境" />
+        <t-option v-for="env in environmentOptions" :key="env" :value="env" :label="env" />
+      </t-select>
+    </template>
 
-      <div class="document-table">
-        <div class="document-table-head document-table-row icon-project-table-row">
-          <span></span>
-          <span>项目名称</span>
-          <span>项目状态</span>
-          <span>版本号</span>
-          <span>隔离环境</span>
-          <span>最近更新</span>
-          <span>操作</span>
-        </div>
+    <template #status="{ row }">
+      <t-tag :theme="getStatusTheme(row.statusTone)" variant="light">{{ row.status }}</t-tag>
+    </template>
 
-        <div
-          v-for="item in filteredRows"
-          :key="item.id"
-          class="document-table-row icon-project-table-row"
-        >
-          <span class="document-cell-check">
-            <input type="checkbox" :checked="item.checked" />
-          </span>
-          <span class="document-name">{{ item.name }}</span>
-          <span>
-            <span class="document-status" :class="`is-${item.statusTone}`">{{ item.status }}</span>
-          </span>
-          <span>{{ item.version }}</span>
-          <span>{{ item.environment }}</span>
-          <span>{{ item.updatedAt }}</span>
-          <span class="document-actions-cell">
-            <button type="button" @click="openProject(item)">详情</button>
-            <button type="button" class="is-danger">删除</button>
-          </span>
-        </div>
-      </div>
-    </div>
+    <template #operation="{ row }">
+      <t-space size="small">
+        <t-button theme="primary" variant="text" @click="openProject(row)">详情</t-button>
+        <t-button theme="danger" variant="text">删除</t-button>
+      </t-space>
+    </template>
+  </starter-list-page>
 
-    <div v-if="projectDialogVisible" class="icon-dialog-mask" @click.self="closeProjectDialog">
-      <div class="icon-dialog">
-        <h3>新建图标项目</h3>
-        <label class="icon-field">
-          <span>项目名称</span>
-          <input v-model="projectForm.name" type="text" placeholder="例如：商城生产图标库" @keydown.enter="saveProject" />
-        </label>
-        <label class="icon-field">
-          <span>隔离环境</span>
-          <select v-model="projectForm.environment">
-            <option value="开发">开发</option>
-            <option value="测试">测试</option>
-            <option value="预发">预发</option>
-            <option value="生产">生产</option>
-          </select>
-        </label>
-        <label class="icon-field">
-          <span>版本号</span>
-          <input v-model="projectForm.version" type="text" placeholder="V1.0.0" @keydown.enter="saveProject" />
-        </label>
-        <div class="icon-dialog-actions">
-          <button class="icon-secondary-button" type="button" @click="closeProjectDialog">取消</button>
-          <button class="document-primary-button" type="button" @click="saveProject">确定</button>
-        </div>
+  <div v-if="projectDialogVisible" class="icon-dialog-mask" @click.self="closeProjectDialog">
+    <div class="icon-dialog">
+      <h3>新建图标项目</h3>
+      <label class="icon-field">
+        <span>项目名称</span>
+        <input v-model="projectForm.name" type="text" placeholder="例如：商城生产图标库" @keydown.enter="saveProject" />
+      </label>
+      <label class="icon-field">
+        <span>隔离环境</span>
+        <select v-model="projectForm.environment">
+          <option value="开发">开发</option>
+          <option value="测试">测试</option>
+          <option value="预发">预发</option>
+          <option value="生产">生产</option>
+        </select>
+      </label>
+      <label class="icon-field">
+        <span>版本号</span>
+        <input v-model="projectForm.version" type="text" placeholder="V1.0.0" @keydown.enter="saveProject" />
+      </label>
+      <div class="icon-dialog-actions">
+        <button class="icon-secondary-button" type="button" @click="closeProjectDialog">取消</button>
+        <button class="document-primary-button" type="button" @click="saveProject">确定</button>
       </div>
     </div>
   </div>
@@ -81,8 +69,15 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { SearchIcon } from 'tdesign-icons-vue-next'
-import { MessagePlugin } from 'tdesign-vue-next'
+import {
+  Button as TButton,
+  MessagePlugin,
+  Option as TOption,
+  Select as TSelect,
+  Space as TSpace,
+  Tag as TTag
+} from 'tdesign-vue-next'
+import StarterListPage from '../../components/StarterListPage.vue'
 import {
   createIconProject,
   readIconProjects,
@@ -91,6 +86,9 @@ import {
 
 const router = useRouter()
 const keyword = ref('')
+const statusFilter = ref('all')
+const environmentFilter = ref('all')
+const selectedRowKeys = ref(readIconProjects().filter((item) => item.checked).map((item) => item.id))
 const rows = ref(readIconProjects())
 const projectDialogVisible = ref(false)
 const projectForm = reactive({
@@ -99,13 +97,43 @@ const projectForm = reactive({
   version: 'V1.0.0'
 })
 
+const columns = [
+  { colKey: 'row-select', type: 'multiple', width: 48 },
+  { colKey: 'name', title: '项目名称', minWidth: 240 },
+  { colKey: 'status', title: '项目状态', width: 120 },
+  { colKey: 'version', title: '版本号', width: 120 },
+  { colKey: 'environment', title: '隔离环境', width: 120 },
+  { colKey: 'updatedAt', title: '最近更新', width: 170 },
+  { colKey: 'operation', title: '操作', width: 120, fixed: 'right' }
+]
+
+const statusOptions = computed(() => [...new Set(rows.value.map((item) => item.status).filter(Boolean))])
+const environmentOptions = computed(() => [...new Set(rows.value.map((item) => item.environment).filter(Boolean))])
+
 const filteredRows = computed(() => {
   const q = keyword.value.trim().toLowerCase()
-  if (!q) return rows.value
   return rows.value.filter((item) => {
-    return `${item.name} ${item.status} ${item.version} ${item.environment}`.toLowerCase().includes(q)
+    const matchKeyword = !q || `${item.name} ${item.status} ${item.version} ${item.environment}`.toLowerCase().includes(q)
+    const matchStatus = statusFilter.value === 'all' || item.status === statusFilter.value
+    const matchEnvironment = environmentFilter.value === 'all' || item.environment === environmentFilter.value
+    return matchKeyword && matchStatus && matchEnvironment
   })
 })
+
+const getStatusTheme = (tone) => {
+  const themeMap = {
+    success: 'success',
+    active: 'success',
+    warning: 'warning',
+    processing: 'primary',
+    danger: 'danger'
+  }
+  return themeMap[tone] || 'default'
+}
+
+const handleSelectChange = (keys) => {
+  selectedRowKeys.value = keys
+}
 
 const openProject = (project) => {
   setActiveIconProjectId(project.id)

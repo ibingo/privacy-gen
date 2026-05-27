@@ -1,27 +1,6 @@
 <template>
-  <div class="mobile-center-page">
-    <div class="mc-list-toolbar">
-      <div class="mc-toolbar-left">
-        <div class="mc-search-box">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.4"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-          <input v-model="keyword" type="text" placeholder="搜索实验名称、指标或负责人..." />
-        </div>
-        <div class="mc-filter-chips">
-          <button
-            v-for="chip in statusChips"
-            :key="chip.value"
-            class="mc-chip"
-            :class="{ 'mc-chip-active': activeStatus === chip.value }"
-            @click="activeStatus = chip.value"
-          >{{ chip.label }}</button>
-        </div>
-      </div>
-      <button class="mc-btn mc-btn-primary" @click="showCreateDialog = true">
-        <span>+</span> 新建实验
-      </button>
-    </div>
-
-    <div class="mc-metrics-grid">
+  <div>
+    <div class="mc-metrics-grid starter-list-metrics">
       <div v-for="metric in metrics" :key="metric.label" class="mc-metric-card">
         <div class="mc-metric-icon" :style="{ background: metric.gradient }">
           <span>{{ metric.icon }}</span>
@@ -34,54 +13,70 @@
       </div>
     </div>
 
-    <section class="mc-panel">
-      <div class="mc-panel-header">
-        <div>
-          <h3>AB 测试服务</h3>
-          <p>关注实验流量、分组表现、转化指标和置信度。</p>
+    <starter-list-page
+      v-model:keyword="keyword"
+      title="AB 测试服务"
+      primary-action="新建实验"
+      search-placeholder="搜索实验名称、指标或负责人..."
+      :breadcrumb="['功能特性管理', 'AB 测试服务']"
+      :columns="columns"
+      :data="filteredTests"
+      @primary="showCreateDialog = true"
+    >
+      <template #filters>
+        <t-select v-model="activeStatus" class="starter-list-filter-select" placeholder="状态">
+          <t-option value="all" label="全部状态" />
+          <t-option v-for="status in abStatusOptions" :key="status.value" :value="status.value" :label="status.label" />
+        </t-select>
+        <t-select v-model="activeAppId" class="starter-list-filter-select" placeholder="所属应用">
+          <t-option value="all" label="全部应用" />
+          <t-option v-for="app in apps" :key="app.id" :value="app.id" :label="`${app.name} · ${app.platform}`" />
+        </t-select>
+        <t-select v-model="activeEnvironment" class="starter-list-filter-select" placeholder="环境">
+          <t-option value="all" label="全部环境" />
+          <t-option v-for="env in environments" :key="env" :value="env" :label="env" />
+        </t-select>
+      </template>
+
+      <template #name="{ row }">
+        <div class="feature-flag-intro">
+          <div>
+            <strong>{{ row.name }}</strong>
+            <t-tag theme="primary" variant="light">{{ row.toggleKey }}</t-tag>
+          </div>
+          <small>{{ getAppName(row.appId) }} · {{ row.metric }} · {{ row.owner }}</small>
         </div>
-      </div>
+      </template>
 
-      <div class="mc-ab-list">
-        <article v-for="test in filteredTests" :key="test.id" class="mc-ab-card">
-          <div class="mc-ab-card-header">
-            <div>
-              <h4>{{ test.name }}</h4>
-              <p>{{ getAppName(test.appId) }} · {{ test.metric }} · {{ test.owner }}</p>
-            </div>
-            <span class="mc-app-status" :class="`mc-status-${getStatusTone(test.status)}`">{{ test.status }}</span>
+      <template #status="{ row }">
+        <t-tag :theme="getStatusTheme(row.status)" variant="light">{{ row.status }}</t-tag>
+      </template>
+
+      <template #traffic="{ row }">
+        <div class="ab-test-traffic">
+          <strong>{{ row.traffic }}%</strong>
+          <div class="mc-platform-bar-track">
+            <div class="mc-platform-bar-fill" :style="{ width: row.traffic + '%', background: '#0052d9' }"></div>
           </div>
-
-          <div class="mc-ab-progress">
-            <div>
-              <span>实验流量</span>
-              <strong>{{ test.traffic }}%</strong>
-            </div>
-            <div class="mc-platform-bar-track">
-              <div class="mc-platform-bar-fill" :style="{ width: test.traffic + '%', background: '#0052d9' }"></div>
-            </div>
-          </div>
-
-          <div class="mc-ab-variants">
-            <div v-for="variant in test.variants" :key="variant.name" class="mc-ab-variant">
-              <strong>{{ variant.name }}</strong>
-              <span>{{ variant.ratio }}% 流量</span>
-              <em>{{ variant.conversion }} · {{ formatNumber(variant.users) }} 用户</em>
-            </div>
-          </div>
-
-          <div class="mc-ab-footer">
-            <span>{{ test.startAt }} 至 {{ test.endAt }}</span>
-            <span>提升 {{ test.uplift }} · 置信度 {{ test.confidence }}</span>
-          </div>
-        </article>
-
-        <div v-if="filteredTests.length === 0" class="mc-empty-state">
-          <p>没有找到匹配的实验</p>
-          <button class="mc-btn mc-btn-outline" @click="keyword = ''; activeStatus = 'all'">清除筛选</button>
         </div>
-      </div>
-    </section>
+      </template>
+
+      <template #period="{ row }">
+        {{ row.startAt }} 至 {{ row.endAt }}
+      </template>
+
+      <template #effect="{ row }">
+        提升 {{ row.uplift }} · 置信度 {{ row.confidence }}
+      </template>
+
+      <template #variants="{ row }">
+        <t-space size="small" :break-line="true">
+          <t-tag v-for="variant in row.variants" :key="variant.name" variant="light">
+            {{ variant.name }} {{ variant.ratio }}%
+          </t-tag>
+        </t-space>
+      </template>
+    </starter-list-page>
 
     <div v-if="showCreateDialog" class="mc-dialog-overlay" @click.self="showCreateDialog = false">
       <div class="mc-dialog">
@@ -138,7 +133,8 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { MessagePlugin } from 'tdesign-vue-next'
+import { MessagePlugin, Option as TOption, Select as TSelect, Space as TSpace, Tag as TTag } from 'tdesign-vue-next'
+import StarterListPage from '../../components/StarterListPage.vue'
 import { abStatusOptions, createAbTest, readAbTests } from '../../config/abTests'
 import { readMobileApps } from '../../config/mobileApps'
 
@@ -146,13 +142,22 @@ const apps = readMobileApps()
 const tests = ref(readAbTests())
 const keyword = ref('')
 const activeStatus = ref('all')
+const activeAppId = ref('all')
+const activeEnvironment = ref('all')
 const showCreateDialog = ref(false)
 const form = ref(buildForm())
 
-const statusChips = [
-  { value: 'all', label: '全部' },
-  ...abStatusOptions.map((item) => ({ value: item.value, label: item.label }))
+const columns = [
+  { colKey: 'name', title: '实验名称', minWidth: 320 },
+  { colKey: 'status', title: '状态', width: 110 },
+  { colKey: 'traffic', title: '实验流量', width: 150 },
+  { colKey: 'environment', title: '环境', width: 130 },
+  { colKey: 'variants', title: '分组', minWidth: 180 },
+  { colKey: 'period', title: '实验周期', width: 220 },
+  { colKey: 'effect', title: '结果', width: 190 }
 ]
+
+const environments = computed(() => [...new Set(tests.value.map((test) => test.environment).filter(Boolean))])
 
 const metrics = computed(() => {
   const running = tests.value.filter((item) => item.status === '运行中').length
@@ -170,8 +175,10 @@ const filteredTests = computed(() => {
   const q = keyword.value.trim().toLowerCase()
   return tests.value.filter((test) => {
     const matchStatus = activeStatus.value === 'all' || test.status === activeStatus.value
-    const matchKeyword = !q || `${test.name} ${test.metric} ${test.owner} ${getAppName(test.appId)}`.toLowerCase().includes(q)
-    return matchStatus && matchKeyword
+    const matchApp = activeAppId.value === 'all' || test.appId === activeAppId.value
+    const matchEnvironment = activeEnvironment.value === 'all' || test.environment === activeEnvironment.value
+    const matchKeyword = !q || `${test.name} ${test.metric} ${test.owner} ${test.environment} ${getAppName(test.appId)}`.toLowerCase().includes(q)
+    return matchStatus && matchApp && matchEnvironment && matchKeyword
   })
 })
 
@@ -194,14 +201,12 @@ function getAppName (appId) {
   return app ? `${app.name} ${app.platform}` : '未关联应用'
 }
 
-function getStatusTone (status) {
-  return abStatusOptions.find((item) => item.value === status)?.tone || 'default'
-}
-
-function formatNumber (n) {
-  if (n >= 10000) return (n / 10000).toFixed(1) + 'w'
-  if (n >= 1000) return (n / 1000).toFixed(1) + 'k'
-  return String(n)
+function getStatusTheme (status) {
+  const tone = abStatusOptions.find((item) => item.value === status)?.tone || 'default'
+  if (tone === 'success') return 'success'
+  if (tone === 'warning') return 'warning'
+  if (tone === 'processing') return 'primary'
+  return 'default'
 }
 
 function handleCreate () {

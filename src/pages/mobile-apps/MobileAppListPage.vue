@@ -23,7 +23,7 @@
 
     <div class="mc-app-grid mc-app-grid-large">
       <div
-        v-for="app in filteredApps"
+        v-for="app in pagedApps"
         :key="app.id"
         class="mc-app-card mc-app-card-hover"
         @click="goToDetail(app.id)"
@@ -58,6 +58,18 @@
         <p>没有找到匹配的应用</p>
         <button class="mc-btn mc-btn-outline" @click="searchQuery = ''; activePlatform = 'all'">清除筛选</button>
       </div>
+    </div>
+
+    <div v-if="filteredApps.length > 0" class="starter-list-pagination mobile-app-card-pagination">
+      <t-pagination
+        v-model:current="currentPage"
+        v-model:page-size="pageSize"
+        :total="filteredApps.length"
+        :total-content="true"
+        :page-size-options="[6, 12, 24]"
+        :show-jumper="false"
+        :show-page-size="true"
+      />
     </div>
 
     <div v-if="showCreateDialog" class="mc-dialog-overlay" @click.self="showCreateDialog = false">
@@ -102,8 +114,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { Pagination as TPagination } from 'tdesign-vue-next'
 import { readMobileApps, createMobileApp, platformOptions } from '../../config/mobileApps'
 
 const router = useRouter()
@@ -111,6 +124,8 @@ const searchQuery = ref('')
 const activePlatform = ref('all')
 const showCreateDialog = ref(false)
 const apps = ref(readMobileApps())
+const currentPage = ref(1)
+const pageSize = ref(6)
 
 const platformChips = [
   { value: 'all', label: '全部' },
@@ -140,6 +155,15 @@ const filteredApps = computed(() => {
     const matchSearch = !query || app.name.toLowerCase().includes(query) || app.packageName.toLowerCase().includes(query)
     return matchPlatform && matchSearch
   })
+})
+
+const pagedApps = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredApps.value.slice(start, start + pageSize.value)
+})
+
+watch([searchQuery, activePlatform, pageSize], () => {
+  currentPage.value = 1
 })
 
 function formatNumber (n) {

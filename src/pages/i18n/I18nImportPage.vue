@@ -14,34 +14,53 @@
         <p>建议单次导入不超过 10MB</p>
       </div>
 
-      <div class="document-table">
-        <div class="document-table-head document-table-row i18n-import-table-row">
-          <span>文件名</span>
-          <span>格式</span>
-          <span>校验结果</span>
-          <span>导入时间</span>
-          <span>操作</span>
-        </div>
-
-        <div v-for="item in importRows" :key="item.id" class="document-table-row i18n-import-table-row">
-          <span class="document-name">{{ item.name }}</span>
-          <span>{{ item.format }}</span>
-          <span><span class="document-status" :class="`is-${item.statusTone}`">{{ item.status }}</span></span>
-          <span>{{ item.createdAt }}</span>
-          <span class="document-actions-cell">
-            <button type="button">查看报告</button>
-            <button type="button">重新导入</button>
-          </span>
-        </div>
-      </div>
+      <t-table row-key="id" hover :columns="columns" :data="importRows" :pagination="pagination">
+        <template #status="{ row }">
+          <t-tag :theme="getStatusTheme(row.statusTone)" variant="light">{{ row.status }}</t-tag>
+        </template>
+        <template #operation>
+          <t-space size="small">
+            <t-button theme="primary" variant="text">查看报告</t-button>
+            <t-button theme="primary" variant="text">重新导入</t-button>
+          </t-space>
+        </template>
+      </t-table>
     </section>
   </div>
 </template>
 
 <script setup>
+import {
+  Button as TButton,
+  Space as TSpace,
+  Table as TTable,
+  Tag as TTag
+} from 'tdesign-vue-next'
+
 const importRows = [
   { id: 'import-001', name: 'privacy-copy-20260508.xlsx', format: 'XLSX', status: '校验通过', statusTone: 'success', createdAt: '2026-05-08 11:22' },
   { id: 'import-002', name: 'agreement-ja.json', format: 'JSON', status: '待修复', statusTone: 'warning', createdAt: '2026-05-08 10:04' },
   { id: 'import-003', name: 'global-copy.csv', format: 'CSV', status: '导入中', statusTone: 'processing', createdAt: '2026-05-07 18:31' }
 ]
+const columns = [
+  { colKey: 'name', title: '文件名', minWidth: 260 },
+  { colKey: 'format', title: '格式', width: 120 },
+  { colKey: 'status', title: '校验结果', width: 140 },
+  { colKey: 'createdAt', title: '导入时间', width: 180 },
+  { colKey: 'operation', title: '操作', width: 180, fixed: 'right' }
+]
+const pagination = {
+  defaultCurrent: 1,
+  defaultPageSize: 10,
+  showJumper: false
+}
+const getStatusTheme = (tone) => {
+  const themeMap = {
+    success: 'success',
+    warning: 'warning',
+    processing: 'primary',
+    danger: 'danger'
+  }
+  return themeMap[tone] || 'default'
+}
 </script>

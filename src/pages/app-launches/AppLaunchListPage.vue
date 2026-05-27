@@ -1,40 +1,36 @@
 <template>
-  <div class="app-launch-list-page">
-    <t-card class="app-launch-list-card" :bordered="false">
-      <template #title>
-        <div class="app-launch-card-title">
-          <span>应用启动页</span>
-          <t-tag theme="primary" variant="light">共 {{ rows.length }} 项</t-tag>
-        </div>
-      </template>
+  <div>
+    <starter-list-page
+      v-model:keyword="keyword"
+      title="应用启动页列表"
+      primary-action="新建"
+      search-placeholder="搜索启动图名称、资源缩写或版本支持"
+      :breadcrumb="['应用启动页管理', '应用启动页列表']"
+      :columns="columns"
+      :data="filteredRows"
+      :selected-row-keys="selectedRowKeys"
+      @primary="openCreateDialog"
+      @select-change="handleSelectChange"
+    >
       <template #actions>
-        <t-space>
-          <t-input
-            v-model="keyword"
-            class="app-launch-search"
-            clearable
-            placeholder="搜索启动图名称、资源缩写或版本支持"
-          >
-            <template #prefix-icon>
-              <search-icon />
-            </template>
-          </t-input>
-          <t-button theme="primary" @click="openCreateDialog">
-            <template #icon><add-icon /></template>
-            新建
-          </t-button>
-        </t-space>
+        <span class="starter-list-summary">已选 {{ selectedRowKeys.length }} 项</span>
       </template>
 
-      <t-table
-        row-key="id"
-        hover
-        :columns="columns"
-        :data="filteredRows"
-        :selected-row-keys="selectedRowKeys"
-        :pagination="pagination"
-        @select-change="handleSelectChange"
-      >
+      <template #filters>
+        <t-select v-model="statusFilter" class="starter-list-filter-select" placeholder="状态">
+          <t-option value="all" label="全部状态" />
+          <t-option v-for="status in statusOptions" :key="status" :value="status" :label="status" />
+        </t-select>
+        <t-select v-model="deviceFilter" class="starter-list-filter-select" placeholder="设备类型">
+          <t-option value="all" label="全部设备" />
+          <t-option v-for="device in launchDeviceOptions" :key="device.value" :value="device.value" :label="device.label" />
+        </t-select>
+        <t-select v-model="versionFilter" class="starter-list-filter-select" placeholder="版本支持">
+          <t-option value="all" label="全部版本" />
+          <t-option v-for="version in launchVersionOptions" :key="version.value" :value="version.value" :label="version.label" />
+        </t-select>
+      </template>
+
         <template #name="{ row }">
           <div class="app-launch-table-name">
             <span class="app-launch-preview" :style="{ background: row.backgroundColor }">
@@ -71,8 +67,7 @@
             <t-button theme="danger" variant="text" @click="removeLaunch(row)">删除</t-button>
           </t-space>
         </template>
-      </t-table>
-    </t-card>
+    </starter-list-page>
 
     <t-dialog
       v-model:visible="createDialogVisible"
@@ -126,10 +121,9 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { AddIcon, LayersIcon, SearchIcon } from 'tdesign-icons-vue-next'
+import { LayersIcon } from 'tdesign-icons-vue-next'
 import {
   Button as TButton,
-  Card as TCard,
   Dialog as TDialog,
   Form as TForm,
   FormItem as TFormItem,
@@ -138,9 +132,9 @@ import {
   Option as TOption,
   Select as TSelect,
   Space as TSpace,
-  Table as TTable,
   Tag as TTag
 } from 'tdesign-vue-next'
+import StarterListPage from '../../components/StarterListPage.vue'
 import {
   createAppLaunch,
   deleteAppLaunch,
@@ -152,6 +146,9 @@ import {
 const route = useRoute()
 const router = useRouter()
 const keyword = ref('')
+const statusFilter = ref('all')
+const deviceFilter = ref('all')
+const versionFilter = ref('all')
 const rows = ref(readAppLaunches())
 const selectedRowKeys = ref(rows.value.filter((item) => item.checked).map((item) => item.id))
 const createDialogVisible = ref(false)
@@ -171,12 +168,6 @@ const columns = [
   { colKey: 'operation', title: '操作', width: 120, fixed: 'right' }
 ]
 
-const pagination = {
-  defaultCurrent: 1,
-  defaultPageSize: 10,
-  showJumper: false
-}
-
 const versionLabelMap = launchVersionOptions.reduce((acc, version) => {
   acc[version.value] = version.label
   return acc
@@ -189,13 +180,17 @@ const deviceLabelMap = launchDeviceOptions.reduce((acc, device) => {
 
 const filteredRows = computed(() => {
   const q = keyword.value.trim().toLowerCase()
-  if (!q) return rows.value
-
   return rows.value.filter((item) => {
     const versionText = getVersionLabels(item.versionSupport).join(' ')
-    return `${item.name} ${item.resourceKey} ${versionText}`.toLowerCase().includes(q)
+    const matchKeyword = !q || `${item.name} ${item.resourceKey} ${versionText}`.toLowerCase().includes(q)
+    const matchStatus = statusFilter.value === 'all' || item.status === statusFilter.value
+    const matchDevice = deviceFilter.value === 'all' || item.device === deviceFilter.value
+    const matchVersion = versionFilter.value === 'all' || (item.versionSupport || []).includes(versionFilter.value)
+    return matchKeyword && matchStatus && matchDevice && matchVersion
   })
 })
+
+const statusOptions = computed(() => [...new Set(rows.value.map((item) => item.status).filter(Boolean))])
 
 watch(
   () => route.name,
