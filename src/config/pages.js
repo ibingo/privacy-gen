@@ -61,6 +61,20 @@ export const pageGroups = [
         icon: 'Setting1Icon'
       },
       {
+        name: 'system-short-links',
+        path: '/system/short-links',
+        title: '短链接管理',
+        description: '查看短链接目标地址、访问次数、启用状态和过期状态。',
+        icon: 'LinkIcon'
+      },
+      {
+        name: 'system-ai-translation-services',
+        path: '/system/ai-translation-services',
+        title: 'AI 翻译来源',
+        description: '管理全局 AI 翻译服务、模型、接口地址和提示词策略。',
+        icon: 'TranslateIcon'
+      },
+      {
         name: 'system-clients',
         path: '/system/clients',
         title: '客户端管理',
@@ -73,6 +87,13 @@ export const pageGroups = [
         title: '项目管理',
         description: '维护项目信息，配置项目与用户、角色、部门的绑定关系。',
         icon: 'FolderOpenIcon'
+      },
+      {
+        name: 'system-configs',
+        path: '/system/configs',
+        title: '配置管理',
+        description: '管理对象存储、短信服务和平台通用配置。',
+        icon: 'Setting1Icon'
       },
       {
         name: 'system-test-management',
@@ -115,20 +136,6 @@ export const pageGroups = [
         title: '配置',
         description: '管理生成文档时使用的本地配置。',
         icon: 'Setting1Icon'
-      },
-      {
-        name: 'privacy',
-        path: '/legal/privacy/new',
-        title: '新建隐私政策',
-        description: '填写应用和第三方 SDK 信息，实时生成可复制、可下载的隐私政策文本。',
-        icon: 'ViewListIcon'
-      },
-      {
-        name: 'agreement',
-        path: '/legal/agreement/new',
-        title: '新建用户协议',
-        description: '填写应用和服务信息，实时生成参考通用法律声明结构的用户协议文本。',
-        icon: 'FileIcon'
       }
     ]
   },
@@ -138,38 +145,81 @@ export const pageGroups = [
     children: [
       {
         name: 'i18n-overview',
-        path: '/legal/i18n/overview',
+        path: '/legal/i18n/projects/:projectId/overview',
         title: '概览',
         description: '查看国际化语言覆盖、待处理任务和最近发布情况。',
-        icon: 'RootListIcon'
+        icon: 'RootListIcon',
+        hidden: true
       },
       {
-        name: 'i18n-copy-list',
-        path: '/legal/i18n/copies',
-        title: '国际化文案',
-        description: '集中查看多语言文案条目、状态与最近更新时间。',
-        icon: 'ViewListIcon'
+        name: 'i18n-project-list',
+        path: '/legal/i18n/projects',
+        title: '文案项目',
+        description: '按移动应用或手动项目管理国际化文案库，进入后维护多语言词条。',
+        icon: 'ViewModuleIcon'
       },
       {
         name: 'i18n-import',
-        path: '/legal/i18n/import',
+        path: '/legal/i18n/projects/:projectId/import',
         title: '导入',
         description: '导入国际化词条文件并校验缺失项、冲突项和语言覆盖率。',
-        icon: 'FileIcon'
+        icon: 'FileIcon',
+        hidden: true
+      },
+      {
+        name: 'i18n-word-tags',
+        path: '/legal/i18n/projects/:projectId/tags',
+        title: '标签管理',
+        description: '管理当前文案项目的标签、适用平台和关联文案数量。',
+        icon: 'ViewListIcon',
+        hidden: true
+      },
+      {
+        name: 'i18n-operation-history',
+        path: '/legal/i18n/projects/:projectId/operation-history',
+        title: '操作记录',
+        description: '查看当前文案项目的新增、修改、删除、发布和回滚记录。',
+        icon: 'ViewListIcon',
+        hidden: true
       },
       {
         name: 'i18n-task',
-        path: '/legal/i18n/tasks',
+        path: '/legal/i18n/projects/:projectId/tasks',
         title: '任务',
         description: '查看导入、校验、发布和导出任务的执行状态与结果。',
-        icon: 'Setting1Icon'
+        icon: 'Setting1Icon',
+        hidden: true
       },
       {
         name: 'i18n-download',
-        path: '/legal/i18n/download',
+        path: '/legal/i18n/projects/:projectId/download',
         title: '下载',
         description: '按语言、环境和版本导出国际化资源包。',
-        icon: 'Setting1Icon'
+        icon: 'Setting1Icon',
+        hidden: true
+      },
+      {
+        name: 'i18n-cloud-integrations',
+        path: '/legal/i18n/projects/:projectId/cloud-integrations',
+        title: '云集成',
+        description: '管理国际化云端同步、Webhook、CDN 分发和平台连接。',
+        icon: 'Setting1Icon',
+        hidden: true
+      },
+      {
+        name: 'i18n-settings',
+        path: '/legal/i18n/projects/:projectId/settings',
+        title: '设置',
+        description: '配置项目默认语种、目标语种和 Webhook 事件通知。',
+        icon: 'Setting1Icon',
+        hidden: true
+      },
+      {
+        name: 'i18n-languages',
+        path: '/legal/i18n/languages',
+        title: '语种',
+        description: '查看 PgyerexLangSupport 语种代码、Locale、Android 与 iOS/macOS 资源代码。',
+        icon: 'TranslateIcon'
       }
     ]
   },
@@ -333,6 +383,14 @@ export const pageGroups = [
         title: '账号设置',
         description: '维护账号基础信息、安全验证和登录保护策略。',
         icon: 'Setting1Icon'
+      },
+      {
+        name: 'user-info-settings',
+        path: '/account/user-info-settings',
+        title: '用户信息设置',
+        description: '维护个人资料展示信息和工作联系方式。',
+        icon: 'UserIcon',
+        hidden: true
       }
     ]
   }
@@ -363,6 +421,98 @@ pages.workbench = {
   title: '工作台',
   description: '选择项目选择、系统管理等不同工作入口。',
   icon: 'RootListIcon'
+}
+
+pages['object-storage-file-list'] = {
+  name: 'object-storage-file-list',
+  path: '/oss-list',
+  title: '对象存储文件',
+  description: '查看对象存储配置下的远程文件列表。',
+  icon: 'ViewListIcon',
+  hidden: true
+}
+
+pages.privacy = {
+  name: 'privacy',
+  path: '/legal/privacy/new',
+  title: '新建隐私政策',
+  description: '填写应用和第三方 SDK 信息，实时生成可复制、可下载的隐私政策文本。',
+  icon: 'ViewListIcon'
+}
+
+pages['privacy-edit'] = {
+  name: 'privacy-edit',
+  path: '/legal/privacy-policies/:id/edit',
+  title: '编辑隐私政策',
+  description: '维护隐私政策关联应用、公司信息、SDK 信息和补充说明。',
+  icon: 'ViewListIcon'
+}
+
+pages['privacy-detail'] = {
+  name: 'privacy-detail',
+  path: '/legal/privacy-policies/:id',
+  title: '隐私政策详情',
+  description: '以只读卡片查看隐私政策基础信息、SDK 明细和文档预览。',
+  icon: 'SecuredIcon'
+}
+
+pages.agreement = {
+  name: 'agreement',
+  path: '/legal/agreement/new',
+  title: '新建用户协议',
+  description: '填写应用和服务信息，实时生成参考通用法律声明结构的用户协议文本。',
+  icon: 'FileIcon'
+}
+
+pages['agreement-edit'] = {
+  name: 'agreement-edit',
+  path: '/legal/user-agreements/:id/edit',
+  title: '编辑用户协议',
+  description: '维护用户协议关联应用、服务范围、公司信息和补充条款。',
+  icon: 'FileIcon'
+}
+
+pages['agreement-detail'] = {
+  name: 'agreement-detail',
+  path: '/legal/user-agreements/:id',
+  title: '用户协议详情',
+  description: '以只读卡片查看用户协议基础信息、存档状态和文档预览。',
+  icon: 'FileIcon'
+}
+
+pages['i18n-cloud-integration-detail'] = {
+  name: 'i18n-cloud-integration-detail',
+  path: '/legal/i18n/projects/:projectId/cloud-integrations/:id',
+  title: '云集成详情',
+  description: '查看和维护云集成的版本、预览、发布和接入记录。',
+  icon: 'Setting1Icon'
+}
+
+pages['i18n-word-list'] = {
+  name: 'i18n-word-list',
+  path: '/legal/i18n/projects/:projectId',
+  title: '国际化文案列表',
+  description: '集中查看当前文案项目的多语言文案条目、状态与最近更新时间。',
+  icon: 'ViewListIcon',
+  hidden: true
+}
+
+pages['i18n-operation-history'] = {
+  name: 'i18n-operation-history',
+  path: '/legal/i18n/projects/:projectId/operation-history',
+  title: '操作记录',
+  description: '查看当前文案项目的新增、修改、删除、发布和回滚记录。',
+  icon: 'ViewListIcon',
+  hidden: true
+}
+
+pages['i18n-word-tags'] = {
+  name: 'i18n-word-tags',
+  path: '/legal/i18n/projects/:projectId/tags',
+  title: '标签管理',
+  description: '管理当前文案项目的标签、适用平台和关联文案数量。',
+  icon: 'ViewListIcon',
+  hidden: true
 }
 
 pages['system-ip-whitelist-create'] = {
@@ -413,6 +563,14 @@ pages['mobile-app-beta-invite-edit'] = {
   icon: 'FileIcon'
 }
 
+pages['mobile-app-beta-invite-detail'] = {
+  name: 'mobile-app-beta-invite-detail',
+  path: '/legal/mobile-apps/beta-invites/:id/detail',
+  title: '内测邀请详情',
+  description: '查看内测邀请的基础信息、测试范围、名额和来源。',
+  icon: 'FileIcon'
+}
+
 pages['mobile-app-beta-invite-template-create'] = {
   name: 'mobile-app-beta-invite-template-create',
   path: '/legal/mobile-apps/beta-invite-templates/new',
@@ -431,7 +589,7 @@ pages['mobile-app-beta-invite-template-edit'] = {
 
 pages['i18n-task-create'] = {
   name: 'i18n-task-create',
-  path: '/legal/i18n/tasks/new',
+  path: '/legal/i18n/projects/:projectId/tasks/new',
   title: '新建任务',
   description: '配置翻译源、语种与文案筛选条件后创建国际化任务。',
   icon: 'Setting1Icon'
@@ -490,6 +648,14 @@ pages['mobile-app-detail'] = {
   path: '/legal/mobile-apps/:id',
   title: '应用详情',
   description: '查看移动应用的基本信息、部署环境、核心功能和版本记录。',
+  icon: 'MobileListIcon'
+}
+
+pages['mobile-app-platforms'] = {
+  name: 'mobile-app-platforms',
+  path: '/legal/mobile-apps/groups/:id',
+  title: '多端应用',
+  description: '按平台查看同一个业务应用下的 iOS、Android、Web App 等端应用。',
   icon: 'MobileListIcon'
 }
 

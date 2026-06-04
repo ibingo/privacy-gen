@@ -1,6 +1,6 @@
 <template>
   <t-card class="panel preview-panel" :bordered="false">
-    <template #title>
+    <template v-if="showTitle" #title>
       <div class="panel-title">
         <span>用户协议预览</span>
         <t-tag theme="warning" variant="light">{{ agreementText.length }} 字符</t-tag>
@@ -9,7 +9,7 @@
 
     <div class="policy-content" v-html="renderedAgreement"></div>
 
-    <template #footer>
+    <template v-if="showActions" #footer>
       <t-space class="actions" :break-line="true">
         <t-button theme="primary" @click="copyToClipboard">
           <template #icon><CopyIcon /></template>
@@ -49,6 +49,14 @@ const props = defineProps({
   formData: {
     type: Object,
     required: true
+  },
+  showActions: {
+    type: Boolean,
+    default: true
+  },
+  showTitle: {
+    type: Boolean,
+    default: true
   }
 })
 

@@ -4,6 +4,7 @@ const VERSION_STORAGE_KEY = 'privacy-gen:mobile-app-versions'
 const defaultApps = [
   {
     id: 'app-001',
+    groupId: 'multi-privacy-gen',
     name: 'Privacy Gen',
     packageName: 'com.privacygen.app',
     platform: 'iOS',
@@ -25,6 +26,7 @@ const defaultApps = [
   },
   {
     id: 'app-002',
+    groupId: 'multi-privacy-gen',
     name: 'Privacy Gen',
     packageName: 'com.privacygen.app',
     platform: 'Android',
@@ -46,6 +48,7 @@ const defaultApps = [
   },
   {
     id: 'app-003',
+    groupId: 'multi-i18n-manager',
     name: 'i18n Manager',
     packageName: 'com.i18n.manager',
     platform: 'iOS',
@@ -67,6 +70,7 @@ const defaultApps = [
   },
   {
     id: 'app-004',
+    groupId: 'multi-i18n-manager',
     name: 'i18n Manager',
     packageName: 'com.i18n.manager',
     platform: 'Android',
@@ -152,6 +156,55 @@ export function readMobileApps () {
   } catch {
     return [...defaultApps]
   }
+}
+
+export function readMobileAppGroups () {
+  const apps = readMobileApps()
+  const grouped = apps.reduce((acc, app) => {
+    const key = app.groupId || app.id
+    if (!acc[key]) {
+      acc[key] = {
+        id: key,
+        name: app.name,
+        description: app.description,
+        icon: app.icon,
+        iconColor: app.iconColor,
+        status: app.status,
+        statusTone: app.statusTone,
+        version: app.version,
+        packageName: app.packageName,
+        lastUpdated: app.lastUpdated,
+        downloads: 0,
+        ratingTotal: 0,
+        ratingCount: 0,
+        platforms: [],
+        apps: []
+      }
+    }
+    acc[key].apps.push(app)
+    acc[key].platforms.push(app.platform)
+    acc[key].downloads += app.downloads || 0
+    if (app.rating) {
+      acc[key].ratingTotal += app.rating
+      acc[key].ratingCount += 1
+    }
+    if (String(app.lastUpdated || '') > String(acc[key].lastUpdated || '')) {
+      acc[key].lastUpdated = app.lastUpdated
+      acc[key].status = app.status
+      acc[key].statusTone = app.statusTone
+      acc[key].version = app.version
+    }
+    return acc
+  }, {})
+
+  return Object.values(grouped).map((group) => ({
+    ...group,
+    type: group.apps.length > 1 ? 'multi' : 'single',
+    platform: group.apps.length > 1 ? '多端 App' : group.apps[0]?.platform,
+    size: group.apps.length > 1 ? `${group.apps.length} 端` : group.apps[0]?.size,
+    rating: group.ratingCount ? Number((group.ratingTotal / group.ratingCount).toFixed(1)) : 0,
+    packageName: group.apps.length > 1 ? `${group.name} · ${group.platforms.join(' / ')}` : group.packageName
+  }))
 }
 
 export function writeMobileApps (apps) {
@@ -272,6 +325,31 @@ export function createMobileApp (data) {
   return app
 }
 
+export function createMultiPlatformMobileApp (data) {
+  const platforms = data.platforms?.length ? data.platforms : [data.platform || 'iOS']
+  const groupId = `multi-${Date.now()}`
+  const iconColors = ['#0052d9', '#00a870', '#e37318', '#8b5cf6', '#059669']
+  const apps = readMobileApps()
+  const { platforms: ignoredPlatforms, isMultiPlatform, ...appData } = data
+  const created = platforms.map((platform, index) => ({
+    id: `app-${Date.now()}-${index}`,
+    groupId,
+    downloads: 0,
+    rating: 0,
+    createdAt: new Date().toISOString().slice(0, 10),
+    lastUpdated: new Date().toISOString().slice(0, 10),
+    environments: ['Development'],
+    features: [],
+    ...appData,
+    platform,
+    packageName: `${data.packageName || 'com.example.app'}.${platform.toLowerCase().replace(/\s+/g, '-')}`,
+    icon: data.icon || data.name.slice(0, 2).toUpperCase(),
+    iconColor: iconColors[index % iconColors.length]
+  }))
+  writeMobileApps([...created, ...apps])
+  return { id: groupId, apps: created }
+}
+
 export function updateMobileApp (id, data) {
   const apps = readMobileApps()
   const index = apps.findIndex((a) => a.id === id)
@@ -288,6 +366,10 @@ export function deleteMobileApp (id) {
 
 export function findMobileApp (id) {
   return readMobileApps().find((a) => a.id === id) || null
+}
+
+export function findMobileAppGroup (id) {
+  return readMobileAppGroups().find((group) => group.id === id) || null
 }
 
 export function getMobileAppStats () {

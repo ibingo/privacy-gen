@@ -1,34 +1,33 @@
 <template>
   <t-card class="panel preview-panel" :bordered="false">
-    <template #title>
+    <template v-if="showTitle" #title>
       <div class="panel-title">
-        <span>隐私政策预览</span>
-        <t-tag theme="warning" variant="light">{{ policyText.length }} 字符</t-tag>
+        <div class="preview-title-main">
+          <span>隐私政策预览</span>
+          <t-tag theme="warning" variant="light">{{ policyText.length }} 字符</t-tag>
+        </div>
+        <t-space v-if="showActions" class="preview-actions" :break-line="true" size="small">
+          <t-button theme="primary" @click="copyToClipboard">
+            <template #icon><CopyIcon /></template>
+            复制到剪贴板
+          </t-button>
+          <t-button variant="outline" @click="downloadAsMarkdown">
+            <template #icon><DownloadIcon /></template>
+            下载 Markdown
+          </t-button>
+          <t-button variant="outline" @click="downloadAsTxt">
+            <template #icon><FileIcon /></template>
+            下载 TXT
+          </t-button>
+          <t-button variant="outline" @click="downloadAsHtml">
+            <template #icon><FileIcon /></template>
+            下载 HTML
+          </t-button>
+        </t-space>
       </div>
     </template>
 
     <div class="policy-content" ref="policyContent" v-html="renderedPolicy"></div>
-
-    <template #footer>
-      <t-space class="actions" :break-line="true">
-        <t-button theme="primary" @click="copyToClipboard">
-          <template #icon><CopyIcon /></template>
-          复制到剪贴板
-        </t-button>
-        <t-button variant="outline" @click="downloadAsMarkdown">
-          <template #icon><DownloadIcon /></template>
-          下载 Markdown
-        </t-button>
-        <t-button variant="outline" @click="downloadAsTxt">
-          <template #icon><FileIcon /></template>
-          下载 TXT
-        </t-button>
-        <t-button variant="outline" @click="downloadAsHtml">
-          <template #icon><FileIcon /></template>
-          下载 HTML
-        </t-button>
-      </t-space>
-    </template>
   </t-card>
 </template>
 
@@ -49,6 +48,14 @@ const props = defineProps({
   formData: {
     type: Object,
     required: true
+  },
+  showActions: {
+    type: Boolean,
+    default: true
+  },
+  showTitle: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -88,3 +95,33 @@ const downloadAsHtml = () => {
   MessagePlugin.success('HTML 文件已下载')
 }
 </script>
+
+<style scoped>
+.panel-title {
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.preview-title-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.preview-actions {
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+@media (max-width: 900px) {
+  .panel-title {
+    flex-direction: column;
+  }
+
+  .preview-actions {
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+}
+</style>

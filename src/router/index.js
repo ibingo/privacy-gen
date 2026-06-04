@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import AppLayout from '../layouts/AppLayout.vue'
 import { pages } from '../config/pages'
-import { isAuthenticated, isSuperAdmin } from '../utils/auth'
+import { ensureAuthPermissions, isAuthenticated, isSuperAdmin } from '../utils/auth'
 
 const routes = [
   {
@@ -56,6 +56,24 @@ const routes = [
         name: 'projects',
         component: () => import('../pages/legal/ProjectListPage.vue'),
         meta: pages.projects
+      },
+      {
+        path: 'system/ai-translation-services',
+        name: 'system-ai-translation-services',
+        component: () => import('../pages/system/SystemAiTranslationServicePage.vue'),
+        meta: {
+          ...pages['system-ai-translation-services'],
+          requiresSuperAdmin: true
+        }
+      },
+      {
+        path: 'system/short-links',
+        name: 'system-short-links',
+        component: () => import('../pages/system/SystemShortLinkPage.vue'),
+        meta: {
+          ...pages['system-short-links'],
+          requiresSuperAdmin: true
+        }
       },
       ...[
         'system-users',
@@ -143,6 +161,24 @@ const routes = [
         }
       },
       {
+        path: 'system/configs',
+        name: 'system-configs',
+        component: () => import('../pages/system/SystemConfigManagePage.vue'),
+        meta: {
+          ...pages['system-configs'],
+          requiresSuperAdmin: true
+        }
+      },
+      {
+        path: 'oss-list',
+        name: 'object-storage-file-list',
+        component: () => import('../pages/system/ObjectStorageFileListPage.vue'),
+        meta: {
+          ...pages['object-storage-file-list'],
+          requiresSuperAdmin: true
+        }
+      },
+      {
         path: 'system/roles/:id/edit',
         name: 'system-roles-edit',
         component: () => import('../pages/system/SystemRoleEditPage.vue'),
@@ -181,6 +217,12 @@ const routes = [
         meta: pages['account-settings']
       },
       {
+        path: 'account/user-info-settings',
+        name: 'user-info-settings',
+        component: () => import('../pages/account/UserInfoSettingsPage.vue'),
+        meta: pages['user-info-settings']
+      },
+      {
         path: 'legal/privacy-policies',
         name: 'privacy-list',
         component: () => import('../pages/legal/PrivacyListPage.vue'),
@@ -199,10 +241,34 @@ const routes = [
         meta: pages.privacy
       },
       {
+        path: 'legal/privacy-policies/:id',
+        name: 'privacy-detail',
+        component: () => import('../pages/legal/PrivacyDetailPage.vue'),
+        meta: pages['privacy-detail']
+      },
+      {
+        path: 'legal/privacy-policies/:id/edit',
+        name: 'privacy-edit',
+        component: () => import('../pages/legal/PrivacyPage.vue'),
+        meta: pages['privacy-edit']
+      },
+      {
         path: 'legal/agreement/new',
         name: 'agreement',
         component: () => import('../pages/legal/AgreementPage.vue'),
         meta: pages.agreement
+      },
+      {
+        path: 'legal/user-agreements/:id',
+        name: 'agreement-detail',
+        component: () => import('../pages/legal/AgreementDetailPage.vue'),
+        meta: pages['agreement-detail']
+      },
+      {
+        path: 'legal/user-agreements/:id/edit',
+        name: 'agreement-edit',
+        component: () => import('../pages/legal/AgreementPage.vue'),
+        meta: pages['agreement-edit']
       },
       {
         path: 'legal/config',
@@ -211,40 +277,91 @@ const routes = [
         meta: pages.config
       },
       {
-        path: 'legal/i18n/overview',
-        name: 'i18n-overview',
-        component: () => import('../pages/i18n/I18nOverviewPage.vue'),
-        meta: pages['i18n-overview']
+        path: 'legal/i18n/projects',
+        name: 'i18n-project-list',
+        component: () => import('../pages/i18n/I18nProjectListPage.vue'),
+        meta: pages['i18n-project-list']
       },
       {
-        path: 'legal/i18n/copies',
-        name: 'i18n-copy-list',
-        component: () => import('../pages/i18n/I18nCopyListPage.vue'),
-        meta: pages['i18n-copy-list']
+        path: 'legal/i18n/languages',
+        name: 'i18n-languages',
+        component: () => import('../pages/i18n/I18nLanguagePage.vue'),
+        meta: pages['i18n-languages']
       },
       {
-        path: 'legal/i18n/import',
-        name: 'i18n-import',
-        component: () => import('../pages/i18n/I18nImportPage.vue'),
-        meta: pages['i18n-import']
-      },
-      {
-        path: 'legal/i18n/tasks',
-        name: 'i18n-task',
-        component: () => import('../pages/i18n/I18nTaskPage.vue'),
-        meta: pages['i18n-task']
-      },
-      {
-        path: 'legal/i18n/tasks/new',
-        name: 'i18n-task-create',
-        component: () => import('../pages/i18n/I18nTaskCreatePage.vue'),
-        meta: pages['i18n-task-create']
-      },
-      {
-        path: 'legal/i18n/download',
-        name: 'i18n-download',
-        component: () => import('../pages/i18n/I18nDownloadPage.vue'),
-        meta: pages['i18n-download']
+        path: 'legal/i18n/projects/:projectId',
+        name: 'i18n-project-module',
+        component: () => import('../pages/i18n/I18nModulePage.vue'),
+        redirect: { name: 'i18n-overview' },
+        meta: pages['i18n-word-list'],
+        children: [
+          {
+            path: 'overview',
+            name: 'i18n-overview',
+            component: () => import('../pages/i18n/I18nOverviewPage.vue'),
+            meta: pages['i18n-overview']
+          },
+          {
+            path: '',
+            name: 'i18n-word-list',
+            component: () => import('../pages/i18n/I18nWordListPage.vue'),
+            meta: pages['i18n-word-list']
+          },
+          {
+            path: 'operation-history',
+            name: 'i18n-operation-history',
+            component: () => import('../pages/i18n/I18nOperationHistoryPage.vue'),
+            meta: pages['i18n-operation-history']
+          },
+          {
+            path: 'tags',
+            name: 'i18n-word-tags',
+            component: () => import('../pages/i18n/I18nTagManagePage.vue'),
+            meta: pages['i18n-word-tags']
+          },
+          {
+            path: 'import',
+            name: 'i18n-import',
+            component: () => import('../pages/i18n/I18nImportPage.vue'),
+            meta: pages['i18n-import']
+          },
+          {
+            path: 'tasks',
+            name: 'i18n-task',
+            component: () => import('../pages/i18n/I18nTaskPage.vue'),
+            meta: pages['i18n-task']
+          },
+          {
+            path: 'tasks/new',
+            name: 'i18n-task-create',
+            component: () => import('../pages/i18n/I18nTaskCreatePage.vue'),
+            meta: pages['i18n-task-create']
+          },
+          {
+            path: 'download',
+            name: 'i18n-download',
+            component: () => import('../pages/i18n/I18nDownloadPage.vue'),
+            meta: pages['i18n-download']
+          },
+          {
+            path: 'cloud-integrations',
+            name: 'i18n-cloud-integrations',
+            component: () => import('../pages/i18n/I18nCloudIntegrationPage.vue'),
+            meta: pages['i18n-cloud-integrations']
+          },
+          {
+            path: 'cloud-integrations/:id',
+            name: 'i18n-cloud-integration-detail',
+            component: () => import('../pages/i18n/I18nCloudIntegrationDetailPage.vue'),
+            meta: pages['i18n-cloud-integration-detail']
+          },
+          {
+            path: 'settings',
+            name: 'i18n-settings',
+            component: () => import('../pages/i18n/I18nSettingsPage.vue'),
+            meta: pages['i18n-settings']
+          }
+        ]
       },
       {
         path: 'legal/icons',
@@ -449,6 +566,12 @@ const routes = [
         meta: pages['mobile-app-beta-invite-edit']
       },
       {
+        path: 'legal/mobile-apps/beta-invites/:id/detail',
+        name: 'mobile-app-beta-invite-detail',
+        component: () => import('../pages/mobile-apps/MobileAppBetaInviteDetailPage.vue'),
+        meta: pages['mobile-app-beta-invite-detail']
+      },
+      {
         path: 'legal/mobile-apps/beta-invite-templates',
         name: 'mobile-app-beta-invite-templates',
         component: () => import('../pages/mobile-apps/MobileAppBetaInviteTemplatePage.vue'),
@@ -465,6 +588,12 @@ const routes = [
         name: 'mobile-app-beta-invite-template-edit',
         component: () => import('../pages/mobile-apps/MobileAppBetaInviteTemplateEditPage.vue'),
         meta: pages['mobile-app-beta-invite-template-edit']
+      },
+      {
+        path: 'legal/mobile-apps/groups/:id',
+        name: 'mobile-app-platforms',
+        component: () => import('../pages/mobile-apps/MobileAppPlatformGroupPage.vue'),
+        meta: pages['mobile-app-platforms']
       },
       {
         path: 'legal/mobile-apps/:id',
@@ -503,7 +632,45 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to) => {
+const normalizeMenuPath = (path) => {
+  const value = String(path || '').trim()
+  if (!value) return ''
+  return `/${value.replace(/^\/+/, '')}`.replace(/\/+$/, '')
+}
+
+const collectMenuPaths = (menus = []) => {
+  const paths = []
+  const walk = (items) => {
+    ;(Array.isArray(items) ? items : []).forEach((item) => {
+      const path = normalizeMenuPath(item.path)
+      if (path) paths.push(path)
+      if (Array.isArray(item.children) && item.children.length) {
+        walk(item.children)
+      }
+    })
+  }
+  walk(menus)
+  return paths
+}
+
+const isPathAllowedByMenus = (path, menuPaths) => {
+  const routePath = normalizeMenuPath(path)
+  if (!routePath) return false
+  return menuPaths.some((menuPath) => {
+    if (routePath === menuPath || routePath.startsWith(`${menuPath}/`)) return true
+    return routePath.startsWith('/legal/i18n/projects/') && menuPath === '/legal/i18n/projects'
+  })
+}
+
+const findFirstAllowedRoute = (menuPaths) => {
+  const route = router.getRoutes().find((item) => {
+    if (!item.name || item.meta?.requiresAuth === false || item.meta?.requiresSuperAdmin) return false
+    return isPathAllowedByMenus(item.path, menuPaths)
+  })
+  return route?.name ? { name: route.name } : { name: 'workbench' }
+}
+
+router.beforeEach(async (to) => {
   if (to.meta?.requiresAuth === false) {
     return true
   }
@@ -515,6 +682,14 @@ router.beforeEach((to) => {
 
     if (to.meta?.requiresSuperAdmin && !isSuperAdmin()) {
       return { name: 'projects' }
+    }
+
+    if (!isSuperAdmin() && !['workbench', 'projects', 'profile', 'account-settings', 'user-info-settings'].includes(to.name)) {
+      const { menus } = await ensureAuthPermissions()
+      const menuPaths = collectMenuPaths(menus)
+      if (!isPathAllowedByMenus(to.path, menuPaths)) {
+        return findFirstAllowedRoute(menuPaths)
+      }
     }
 
     return true

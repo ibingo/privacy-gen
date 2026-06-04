@@ -35,9 +35,6 @@
             </template>
             <template v-for="page in group.children" :key="page.name">
               <t-submenu v-if="page.children" :value="page.name">
-                <template #icon>
-                  <component :is="resolveIcon(page.icon)" />
-                </template>
                 <template #title>
                   {{ page.title }}
                 </template>
@@ -46,9 +43,6 @@
                   :key="child.name"
                   :value="child.name"
                 >
-                  <template #icon>
-                    <component :is="resolveIcon(child.icon)" />
-                  </template>
                   {{ child.title }}
                 </t-menu-item>
               </t-submenu>
@@ -56,9 +50,6 @@
                 v-else
                 :value="page.name"
               >
-                <template #icon>
-                  <component :is="resolveIcon(page.icon)" />
-                </template>
                 {{ page.title }}
               </t-menu-item>
             </template>
@@ -209,7 +200,7 @@
           >
             <button class="topbar-user" type="button">
               <user-circle-icon />
-              <span>法务管理员</span>
+              <span>{{ currentUserName }}</span>
               <chevron-down-icon />
             </button>
           </t-dropdown>
@@ -292,6 +283,7 @@ import {
   HomeIcon,
   ImageEditIcon,
   ImageAddIcon,
+  LinkIcon,
   LogoGithubIcon,
   MailIcon,
   MenuFoldIcon,
@@ -331,7 +323,7 @@ import {
 } from '../config/projects'
 import { getProjects } from '../api/projects'
 import { getActiveIconProjectId } from '../config/iconProjects'
-import { isSuperAdmin, logout } from '../utils/auth'
+import { ensureAuthPermissions, fetchSession, getUser, getUserMenus, isSuperAdmin, logout } from '../utils/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -347,6 +339,8 @@ const existingProjects = computed(() => projectGroups.value.flatMap((g) => g.chi
 const notificationPopupVisible = ref(false)
 const editorChatVisible = ref(false)
 const asideCollapsed = ref(false)
+const currentUser = ref(getUser())
+const authMenus = ref(getUserMenus())
 
 const locales = [
   { value: 'zh-CN', label: '简体中文' },
@@ -387,6 +381,7 @@ const iconMap = {
   FolderOpenIcon,
   ImageAddIcon,
   ImageEditIcon,
+  LinkIcon,
   MobileListIcon,
   RootListIcon,
   SecuredIcon,
@@ -405,16 +400,20 @@ const activeMenu = computed(() => {
   if (route.name === 'system-roles-edit') return 'system-roles'
   if (route.name === 'system-users-edit') return 'system-users'
   if (['system-ip-whitelist-create', 'system-ip-whitelist-edit'].includes(route.name)) return 'system-ip-whitelist'
+  if (['privacy', 'privacy-edit', 'privacy-detail'].includes(route.name)) return 'privacy-list'
+  if (['agreement', 'agreement-edit', 'agreement-detail'].includes(route.name)) return 'agreement-list'
   if (['icon-edit', 'icon-create'].includes(route.name)) return 'icon-list'
+  if (route.name === 'i18n-languages') return 'i18n-languages'
+  if (i18nRouteNames.includes(route.name)) return 'i18n-project-list'
   if (['app-icon-create', 'app-icon-generate'].includes(route.name)) return 'app-icon-list'
   if (['app-launch-create', 'app-launch-edit'].includes(route.name)) return 'app-launch-list'
-  if (['mobile-app-detail', 'mobile-app-edit', 'mobile-app-versions', 'mobile-app-install-manage'].includes(route.name)) return 'mobile-app-list'
+  if (['mobile-app-platforms', 'mobile-app-detail', 'mobile-app-edit', 'mobile-app-versions', 'mobile-app-install-manage'].includes(route.name)) return 'mobile-app-list'
   if (['mobile-app-experiment-edit', 'mobile-app-experiment-create'].includes(route.name)) return 'mobile-app-experiments'
   if (['mobile-app-flag-configs', 'mobile-app-flag-config-edit', 'mobile-app-flag-prerequisite-edit'].includes(route.name)) return 'mobile-app-experiments'
   if (['mobile-app-segment-edit', 'mobile-app-segment-create'].includes(route.name)) return 'mobile-app-segments'
   if (['mobile-app-segment-attribute-detail', 'mobile-app-segment-attribute-create'].includes(route.name)) return 'mobile-app-segment-attributes'
   if (['mobile-app-beta-user-create', 'mobile-app-beta-user-edit'].includes(route.name)) return 'mobile-app-beta-users'
-  if (['mobile-app-beta-invite-create', 'mobile-app-beta-invite-edit'].includes(route.name)) return 'mobile-app-beta-invites'
+  if (['mobile-app-beta-invite-create', 'mobile-app-beta-invite-edit', 'mobile-app-beta-invite-detail'].includes(route.name)) return 'mobile-app-beta-invites'
   if (['mobile-app-beta-invite-template-create', 'mobile-app-beta-invite-template-edit'].includes(route.name)) return 'mobile-app-beta-invite-templates'
   if (route.name === 'mobile-app-flag-approval-edit') return 'mobile-app-flag-approvals'
   return route.name || 'home'
@@ -422,15 +421,40 @@ const activeMenu = computed(() => {
 const pageMeta = computed(() => pages[route.name] || pages[defaultProjectRouteName] || pages.projects)
 const pageTitle = computed(() => pageMeta.value.title)
 const pageDescription = computed(() => pageMeta.value.description)
-const accountRouteNames = ['profile', 'account-settings']
-const systemRouteNames = ['system-users', 'system-roles', 'system-permissions', 'system-menus', 'system-departments', 'system-posts', 'system-dicts', 'system-params', 'system-clients', 'system-projects', 'system-ip-whitelist']
+const accountRouteNames = ['profile', 'account-settings', 'user-info-settings']
+const systemRouteNames = ['system-users', 'system-roles', 'system-permissions', 'system-menus', 'system-departments', 'system-posts', 'system-dicts', 'system-params', 'system-short-links', 'system-ai-translation-services', 'system-clients', 'system-projects', 'system-configs', 'object-storage-file-list', 'system-ip-whitelist']
 const isSystemRoute = computed(() => systemRouteNames.includes(route.name) || systemRouteNames.some((name) => route.name === `${name}-create`) || route.name === 'system-projects-edit' || route.name === 'system-roles-edit' || route.name === 'system-users-edit' || route.name === 'system-ip-whitelist-edit')
 const shellRouteNames = ['projects', 'workbench']
+const i18nRouteNames = [
+  'i18n-module',
+  'i18n-overview',
+  'i18n-project-list',
+  'i18n-word-list',
+  'i18n-operation-history',
+  'i18n-word-tags',
+  'i18n-import',
+  'i18n-languages',
+  'i18n-task',
+  'i18n-task-create',
+  'i18n-download',
+  'i18n-cloud-integrations',
+  'i18n-cloud-integration-detail',
+  'i18n-settings'
+]
 const starterListRouteNames = [
   'privacy-list',
   'agreement-list',
-  'i18n-copy-list',
+  'i18n-overview',
+  'i18n-project-list',
+  'i18n-word-list',
+  'i18n-operation-history',
+  'i18n-word-tags',
+  'i18n-import',
+  'i18n-languages',
   'i18n-task',
+  'i18n-settings',
+  'i18n-download',
+  'i18n-cloud-integrations',
   'icon-project-list',
   'app-icon-list',
   'app-launch-list',
@@ -443,22 +467,97 @@ const starterListRouteNames = [
   'mobile-app-beta-invites',
   'mobile-app-beta-invite-templates'
 ]
+
+const normalizeMenuPath = (path) => {
+  const value = String(path || '').trim()
+  if (!value) return ''
+  return `/${value.replace(/^\/+/, '')}`.replace(/\/+$/, '')
+}
+
+const collectMenuPaths = (menus = []) => {
+  const paths = []
+  const walk = (items) => {
+    ;(Array.isArray(items) ? items : []).forEach((item) => {
+      const path = normalizeMenuPath(item.path)
+      if (path) paths.push(path)
+      if (Array.isArray(item.children) && item.children.length) {
+        walk(item.children)
+      }
+    })
+  }
+  walk(menus)
+  return paths
+}
+
+const isPageAllowedByMenus = (page, menuPaths) => {
+  const pagePath = normalizeMenuPath(page.path)
+  if (!pagePath) return false
+  return menuPaths.some((menuPath) => pagePath === menuPath || pagePath.startsWith(`${menuPath}/`))
+}
+
+const filterPagesByMenus = (items, menuPaths) => {
+  return items
+    .filter((page) => !page.hidden)
+    .map((page) => {
+      const children = page.children ? filterPagesByMenus(page.children, menuPaths) : undefined
+      if (children?.length) {
+        return {
+          ...page,
+          children
+        }
+      }
+      return isPageAllowedByMenus(page, menuPaths) ? page : null
+    })
+    .filter(Boolean)
+}
+
+const filterVisiblePages = (items) => {
+  return items
+    .filter((page) => !page.hidden)
+    .map((page) => ({
+      ...page,
+      children: page.children ? filterVisiblePages(page.children) : undefined
+    }))
+}
+
+const filterVisibleGroups = (groups) => {
+  return groups
+    .map((group) => ({
+      ...group,
+      children: filterVisiblePages(group.children || [])
+    }))
+    .filter((group) => group.children.length)
+}
+
 const visiblePageGroups = computed(() => {
   if (isSystemRoute.value) {
-    return pageGroups.filter((group) => group.title === '系统管理' && isSuperAdmin())
+    return filterVisibleGroups(pageGroups.filter((group) => group.title === '系统管理' && isSuperAdmin()))
   }
 
   if (accountRouteNames.includes(route.name)) {
-    return pageGroups.filter((group) => group.title === '账号中心')
+    return filterVisibleGroups(pageGroups.filter((group) => group.title === '账号中心'))
   }
 
-  return pageGroups.filter((group) => !group.adminOnly && group.title !== '账号中心')
+  if (isSuperAdmin()) {
+    return filterVisibleGroups(pageGroups.filter((group) => !group.adminOnly && group.title !== '账号中心'))
+  }
+
+  const menuPaths = collectMenuPaths(authMenus.value)
+  return pageGroups
+    .filter((group) => !group.adminOnly && group.title !== '账号中心')
+    .map((group) => ({
+      ...group,
+      children: filterPagesByMenus(group.children, menuPaths)
+    }))
+    .filter((group) => group.children.length)
 })
 const showProjectMenu = computed(() => !shellRouteNames.includes(route.name))
-const showPageHeading = computed(() => !isSystemRoute.value && !starterListRouteNames.includes(route.name) && !['projects', 'workbench', 'profile', 'i18n-task-create', 'icon-edit', 'icon-create', 'app-launch-edit', 'mobile-app-overview', 'mobile-app-detail', 'mobile-app-edit', 'mobile-app-versions', 'mobile-app-install-manage', 'mobile-app-experiment-edit', 'mobile-app-experiment-create', 'mobile-app-flag-config-edit', 'mobile-app-segment-edit', 'mobile-app-segment-attribute-create', 'mobile-app-segment-attribute-detail', 'mobile-app-flag-approval-edit', 'mobile-app-beta-user-create', 'mobile-app-beta-user-edit', 'mobile-app-beta-invite-create', 'mobile-app-beta-invite-edit', 'mobile-app-beta-invite-template-create', 'mobile-app-beta-invite-template-edit'].includes(route.name))
+const showPageHeading = computed(() => !isSystemRoute.value && !starterListRouteNames.includes(route.name) && !['projects', 'workbench', 'profile', 'privacy-detail', 'agreement-detail', 'i18n-task-create', 'i18n-cloud-integration-detail', 'icon-edit', 'icon-create', 'app-launch-edit', 'mobile-app-overview', 'mobile-app-platforms', 'mobile-app-detail', 'mobile-app-edit', 'mobile-app-versions', 'mobile-app-install-manage', 'mobile-app-experiment-edit', 'mobile-app-experiment-create', 'mobile-app-flag-config-edit', 'mobile-app-segment-edit', 'mobile-app-segment-attribute-create', 'mobile-app-segment-attribute-detail', 'mobile-app-flag-approval-edit', 'mobile-app-beta-user-create', 'mobile-app-beta-user-edit', 'mobile-app-beta-invite-create', 'mobile-app-beta-invite-edit', 'mobile-app-beta-invite-detail', 'mobile-app-beta-invite-template-create', 'mobile-app-beta-invite-template-edit', 'object-storage-file-list'].includes(route.name))
 const editorRouteNames = [
   'privacy',
+  'privacy-edit',
   'agreement',
+  'agreement-edit',
   'i18n-task-create',
   'app-icon-create',
   'app-icon-generate',
@@ -485,6 +584,18 @@ const localeOptions = computed(() => {
   }))
 })
 const notificationCount = computed(() => notifications.value.length)
+const currentUserName = computed(() => {
+  const user = currentUser.value || {}
+  return user.displayName
+    || user.name
+    || user.realName
+    || user.nickname
+    || user.nickName
+    || user.username
+    || user.account
+    || user.loginName
+    || '用户'
+})
 const userOptions = computed(() => [
   {
     value: 'profile',
@@ -577,6 +688,10 @@ const currentGroupTitle = computed(() => {
     ? 'app-icon-list'
     : ['icon-edit', 'icon-create'].includes(route.name)
     ? 'icon-list'
+    : route.name === 'i18n-languages'
+    ? 'i18n-languages'
+    : i18nRouteNames.includes(route.name)
+    ? 'i18n-project-list'
     : ['mobile-app-experiment-edit', 'mobile-app-experiment-create'].includes(route.name)
     ? 'mobile-app-experiments'
     : ['mobile-app-flag-configs', 'mobile-app-flag-config-edit', 'mobile-app-flag-prerequisite-edit'].includes(route.name)
@@ -587,7 +702,7 @@ const currentGroupTitle = computed(() => {
     ? 'mobile-app-segment-attributes'
     : route.name === 'mobile-app-flag-approval-edit'
     ? 'mobile-app-flag-approvals'
-    : ['mobile-app-detail', 'mobile-app-edit', 'mobile-app-versions', 'mobile-app-install-manage'].includes(route.name)
+    : ['mobile-app-platforms', 'mobile-app-detail', 'mobile-app-edit', 'mobile-app-versions', 'mobile-app-install-manage'].includes(route.name)
     ? 'mobile-app-list'
     : route.name
   const group = visiblePageGroups.value.find((item) => item.children.some((page) => {
@@ -686,6 +801,17 @@ watch(
 )
 
 onMounted(async () => {
+  try {
+    await fetchSession()
+    currentUser.value = getUser()
+    if (!isSuperAdmin()) {
+      const data = await ensureAuthPermissions()
+      authMenus.value = data.menus
+    }
+  } catch {
+    currentUser.value = getUser()
+  }
+
   try {
     const projects = await getProjects()
     projectGroups.value = groupProjects(projects)

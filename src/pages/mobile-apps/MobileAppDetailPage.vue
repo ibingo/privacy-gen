@@ -119,11 +119,23 @@
         <h3>安装页面</h3>
       </div>
       <div class="mc-install-link-block">
-        <div class="mc-qr-box">{{ qrInitials }}</div>
+        <div class="mc-qr-box">
+          <t-qrcode
+            :value="installUrl"
+            :size="116"
+            level="H"
+            :icon="app.iconImage || undefined"
+            :icon-size="{ width: 30, height: 30 }"
+            borderless
+          />
+          <span v-if="!app.iconImage" class="mc-qr-center-icon" :style="{ background: app.iconColor }">
+            {{ qrInitials }}
+          </span>
+        </div>
         <div class="mc-install-link-main">
           <strong>将下载链接以聊天、邮件发送给用户，或在您的官网中链接</strong>
           <div class="mc-install-url">
-            <span>{{ installSettings.installUrl || defaultInstallUrl }}</span>
+            <span>{{ installUrl }}</span>
             <button class="mc-link-btn" type="button">复制</button>
           </div>
           <div class="mc-install-actions">
@@ -201,22 +213,27 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { QRCode as TQrcode } from 'tdesign-vue-next'
 import { findMobileApp } from '../../config/mobileApps'
+import { formatDistributionMode, getMobileAppInstallDetailApi, normalizeMobileAppInstallDetail } from '../../api/mobileApps'
 
 const route = useRoute()
 const router = useRouter()
-const app = computed(() => findMobileApp(route.params.id))
+const localApp = computed(() => findMobileApp(route.params.id))
+const installDetail = ref(null)
+const app = computed(() => installDetail.value?.app || localApp.value)
 const installSettings = computed(() => app.value?.installSettings || {})
 const defaultInstallUrl = computed(() => `${window.location.origin}${window.location.pathname}#/install/${app.value?.id || 'app'}`)
+const installUrl = computed(() => installSettings.value.installUrl || installDetail.value?.downloadLink || defaultInstallUrl.value)
 const qrInitials = computed(() => (app.value?.icon || app.value?.name?.slice(0, 2) || 'APP').toUpperCase())
 const previewScreenshots = computed(() => {
   const shots = installSettings.value.screenshots || []
   return [...shots, '', '', ''].slice(0, 4)
 })
 const installSettingSummary = computed(() => [
-  { label: '分发模式', value: installSettings.value.distributionMode || '内测模式(下载次数受限制)' },
+  { label: '分发模式', value: formatDistributionMode(installSettings.value.distributionMode) },
   { label: '安装方式', value: installSettings.value.installMethod || '公开' },
   { label: '下载状态', value: installSettings.value.downloadEnabled === false ? '关闭' : '开启' },
   { label: '下载有效期', value: installSettings.value.downloadValidity || '长期有效' },
@@ -242,4 +259,13 @@ function envClass (env) {
   if (env === 'QA') return 'mc-env-qa'
   return 'mc-env-dev'
 }
+
+onMounted(async () => {
+  try {
+    const detail = await getMobileAppInstallDetailApi(route.params.id)
+    installDetail.value = normalizeMobileAppInstallDetail(detail, localApp.value || {})
+  } catch {
+    installDetail.value = null
+  }
+})
 </script>

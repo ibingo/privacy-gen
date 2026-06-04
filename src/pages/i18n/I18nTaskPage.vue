@@ -2,6 +2,7 @@
   <starter-list-page
     v-model:keyword="keyword"
     title="国际化任务"
+    :show-breadcrumb="false"
     :total-text="`共 ${filteredRows.length} 项`"
     primary-action="新建任务"
     :columns="columns"
@@ -32,11 +33,12 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Button as TButton, Option as TOption, Select as TSelect, Space as TSpace, Tag as TTag } from 'tdesign-vue-next'
 import StarterListPage from '../../components/StarterListPage.vue'
 
 const router = useRouter()
+const route = useRoute()
 const keyword = ref('')
 const typeFilter = ref('all')
 const statusFilter = ref('all')
@@ -70,7 +72,7 @@ const filteredRows = computed(() => {
 })
 
 const goToCreate = () => {
-  router.push({ name: 'i18n-task-create' })
+  router.push({ name: 'i18n-task-create', params: { projectId: route.params.projectId } })
 }
 
 const getStatusTheme = (tone) => {

@@ -21,7 +21,25 @@
     />
 
     <section class="mobile-install-card">
+      <div v-if="passwordRequired && !passwordPassed" class="mobile-install-password-gate">
+        <h2>密码访问</h2>
+        <p>{{ installSettings.accessPasswordHint || '请输入访问密码后继续安装' }}</p>
+        <div class="mobile-install-password-input">
+          <input
+            v-model="accessPassword"
+            :type="showAccessPassword ? 'text' : 'password'"
+            placeholder="请输入访问密码"
+            @keyup.enter="verifyAccessPassword"
+          />
+          <button type="button" aria-label="切换密码显示" @click="showAccessPassword = !showAccessPassword">
+            <BrowseIcon v-if="showAccessPassword" />
+            <BrowseOffIcon v-else />
+          </button>
+        </div>
+        <t-button class="mobile-install-password-submit" block theme="primary" @click="verifyAccessPassword">验证密码</t-button>
+      </div>
       <t-button
+        v-else
         block
         size="large"
         theme="primary"
@@ -61,6 +79,7 @@
       <t-cell title="Build 版本" :note="app.buildNumber" />
       <t-cell title="包体大小" :note="app.size" />
       <t-cell title="版本类型" :note="currentVersionLabel" />
+      <t-cell title="分发模式" :note="distributionModeLabel" />
       <t-cell title="安装方式" :note="installSettings.installMethod || '公开'" />
       <t-cell title="下载页语言" :note="installSettings.downloadLanguage || '自动'" />
     </section>
@@ -79,7 +98,7 @@
     <div class="mobile-install-desktop-card">
       <h1>{{ app.name }}</h1>
       <p>当前链接为移动端安装页，请使用手机浏览器访问。</p>
-      <t-q-r-code :value="installUrl" :size="180" />
+      <t-qrcode :value="installUrl" :size="180" />
       <button class="mc-btn mc-btn-primary" @click="router.replace({ name: 'mobile-app-detail', params: { id: app.id } })">
         进入应用详情
       </button>
@@ -97,8 +116,10 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { BrowseIcon, BrowseOffIcon } from 'tdesign-icons-vue-next'
 import { Button as TButton, Cell as TCell, NoticeBar as TNoticeBar, QRCode as TQRCode, Swiper as TSwiper, SwiperItem as TSwiperItem, Tag as TTag, ToastPlugin } from 'tdesign-mobile-vue'
 import { findMobileApp, readMobileAppVersions } from '../../config/mobileApps'
+import { formatDistributionMode, isPasswordDistributionMode } from '../../api/mobileApps'
 
 const route = useRoute()
 const router = useRouter()
@@ -108,6 +129,9 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|
 const isIOS = /iPhone|iPad|iPod/i.test(userAgent)
 const isInAppWebView = /MicroMessenger|QQ\/|MQQBrowser|Weibo|DingTalk|Lark|Feishu|Toutiao|NewsArticle|Aweme|Bytedance|AlipayClient/i.test(userAgent)
 const webViewOverlayVisible = ref(false)
+const accessPassword = ref('')
+const showAccessPassword = ref(false)
+const passwordPassed = ref(false)
 const installSettings = computed(() => app.value?.installSettings || {})
 const versions = computed(() => app.value ? readMobileAppVersions(app.value.id) : [])
 const currentVersion = computed(() => {
@@ -134,13 +158,36 @@ const targetInstallUrl = computed(() => {
 })
 const installButtonText = computed(() => {
   if (installSettings.value.downloadEnabled === false) return '下载已关闭'
+  if (passwordRequired.value && !passwordPassed.value) return '请先验证密码'
   if (isIOS && isReleaseVersion.value) return '前往 App Store'
   return '立即安装'
 })
 const screenshots = computed(() => installSettings.value.screenshots || [])
+const distributionModeLabel = computed(() => formatDistributionMode(installSettings.value.distributionMode))
+const passwordRequired = computed(() => {
+  return isPasswordDistributionMode(installSettings.value.distributionMode) || installSettings.value.installMethod === '密码安装'
+})
+
+function verifyAccessPassword () {
+  const expected = String(installSettings.value.accessCode || installSettings.value.accessPassword || '').trim()
+  if (!expected) {
+    ToastPlugin.fail('当前安装页未配置访问密码')
+    return
+  }
+  if (String(accessPassword.value || '').trim() !== expected) {
+    ToastPlugin.fail('访问密码不正确')
+    return
+  }
+  passwordPassed.value = true
+  ToastPlugin.success('密码验证通过')
+}
 
 function handleInstall () {
   if (installSettings.value.downloadEnabled === false) return
+  if (passwordRequired.value && !passwordPassed.value) {
+    ToastPlugin.fail('请先验证访问密码')
+    return
+  }
   if (isInAppWebView) {
     webViewOverlayVisible.value = true
     return

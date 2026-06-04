@@ -1,0 +1,17 @@
+import http from '../utils/http'
+
+export const listObjectStorageConfigsApi = (data) => http.post('/oss/config/list', data)
+export const getObjectStorageConfigDetailApi = (id) => http.post('/oss/config/detail', { id })
+export const getObjectStorageConfigOptionsApi = () => http.post('/oss/config/options')
+export const createObjectStorageConfigApi = (data) => http.post('/oss/config/create', data)
+export const updateObjectStorageConfigApi = (id, data) => http.post('/oss/config/update', { id, ...data })
+export const updateObjectStorageConfigEnabledApi = (id, data) => http.post('/oss/config/enable', { id, ...data })
+export const getObjectStorageConfigArchiveStatusApi = (data) => http.post('/oss/config/archive-status', data)
+export const archiveObjectStorageConfigApi = (data) => http.post('/oss/config/archive', data)
+export const deleteObjectStorageConfigApi = (id) => http.post('/oss/config/delete', { id })
+export const listObjectStorageFilesApi = (data) => http.post('/oss/files/list', data)
+export const getObjectStorageFileDetailApi = (fileId) => http.post('/oss/files/detail', { fileId })
+export const downloadObjectStorageFileApi = (fileId) => http.post('/oss/files/download', { fileId })
+export const deleteObjectStorageFileApi = (fileId) => http.post('/oss/files/delete', { fileId })
+export const uploadObjectStorageFileApi = (data) => http.post('/oss/files/upload', data)
+export const signObjectStorageFileApi = (data) => http.post('/oss/files/sign', data)
